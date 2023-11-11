@@ -48,20 +48,31 @@ ECG_Filter=diff(ECG_Filter); %
 ECG_Filter=ECG_Filter.^2 ;   %square
 
 
-cycle=int16(T_length/50);%
-i=int16(i);
-ECG_Filter1=zeros;
-ECG_Filter1(1)=ECG_Filter(1);
-for i=0:(cycle-2)
-    for j=1:50
-        if j==1
-        ECG_Filter1(50*i+j)=ECG_Filter(50*i+j);
-        else
-        ECG_Filter1(50*i+j)=ECG_Filter(50*i+j)+ECG_Filter1(50*i+j-1);
-        end
-    end
+% cycle=int16(T_length/50);%
+% i=int16(i);
+% ECG_Filter1=zeros;
+% ECG_Filter1(1)=ECG_Filter(1);
+% for i=0:(cycle-2)
+%     for j=1:50
+%         if j==1
+%         ECG_Filter1(50*i+j)=ECG_Filter(50*i+j);
+%         else
+%         ECG_Filter1(50*i+j)=ECG_Filter(50*i+j)+ECG_Filter1(50*i+j-1);
+%         end
+%     end
+% 
+% end
 
-end
+
+% i=int16(i);
+% for i=26:(T_length-50)
+% ECG_Filter1(i)=sum(ECG_Filter(i-25:25+(i-1)));
+% end
+
+ECG_Filter1=ECG_Filter;
+ECG_Filter1=diff(ECG_Filter1);%
+
+ECG_Filter1(ECG_Filter1<0)=0;
 
 T_length=length(ECG_Filter1); 
 T=(1:T_length)/FS;
@@ -76,6 +87,8 @@ title('PAN-TOMPKINS marks')
 legend('ECG_Filter')
 
 
+ECG_data=filtfilt(df,ECG_data);
+
 T_length=length(ECG_data);%ECG time 
 T=(1:T_length)/FS;
 T=T';
@@ -88,14 +101,14 @@ ylabel('Amplitude')
 hold on
 
 
-ECG_Filter1=diff(ECG_Filter1);%
+% ECG_Filter1=diff(ECG_Filter1);%
 % ECG_Filter1=ECG_Filter1^2
 
 T_length=length(ECG_Filter1); 
 T=(1:T_length)/FS;
 T=T';
 
-ECG_Filter1(ECG_Filter1<0)=0;
+% ECG_Filter1(ECG_Filter1<0)=0;
 % subplot(5,2,7);%make R wave 
 % plot(T,ECG_Filter,'x-')
 % xlabel('TIME/S')
@@ -126,13 +139,18 @@ for i=0:(cycle-2)
         THR1=0.25*max(ECG_Filter1(500*i+1:500*(i+1)));
     end
     [peaks1,location1]=findpeaks(ECG_Filter1(500*i+1:500*(i+1)),T(500*i+1:500*(i+1)),'Annotate','extents');%find all peaks
-    peaks1(peaks1<THR1)=0;
+     peaks1(peaks1<THR1)=0;
     peaks_length1=length(peaks1);
     for k=1:peaks_length1
         if(peaks1(k)~=0)
             if((location1(k)-location_resume(end))>0.05)%IF R-R time longer than 0.05s ，then it's non-repeat peaks
                 peaks_resume(end+1)=peaks1(k);
                 location_resume(end+1)=location1(k);
+            else
+                if(peaks1(k)>peaks1(k-1))
+                    peaks_resume(end)=peaks1(k);
+                    location_resume(end)=location1(k);   
+                end
             end
         end
     end

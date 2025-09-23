@@ -1,0 +1,12 @@
+../Core/Src/ADS1294.c:33:6:delay_us	32	static
+../Core/Src/ADS1294.c:73:6:ADS1294_Init	8	static
+../Core/Src/ADS1294.c:110:6:ADS1294_Read_Data	48	static
+../Core/Src/ADS1294.c:135:6:ADS1294_SET_REGBUFF	4	static
+../Core/Src/ADS1294.c:163:6:ADS1294_Send_CMD	32	static
+../Core/Src/ADS1294.c:174:6:ADS1294_WR_REGS	32	static
+../Core/Src/ADS1294.c:215:6:ADS1294_WRITE_REGBUFF	4	static
+../Core/Src/ADS1294.c:257:6:ADS1294_PowerOnInit	8	static
+../Core/Src/ADS1294.c:278:6:ADS1294_Single_Test	4	static
+../Core/Src/ADS1294.c:291:6:ADS1294_Noise_Test	4	static
+../Core/Src/ADS1294.c:305:6:ADS1294_Single_Read	8	static
+../Core/Src/ADS1294.c:319:6:Set_ADS1294_Collect	16	static

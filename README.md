@@ -32,3 +32,5 @@ Hardware prototype
 ![PHYSIO_PCB](https://github.com/user-attachments/assets/7622d6b0-4796-47c3-825c-8e8744fa1f35)
 Python console  
 ![python console](https://github.com/user-attachments/assets/d1b41586-4a6b-4fd0-b74a-d3e5fb1b1cc0)
+
+<img width="1400" height="930" alt="image" src="https://github.com/user-attachments/assets/2ca9f4a7-1213-45cd-bbab-9d5b22ac40f3" />

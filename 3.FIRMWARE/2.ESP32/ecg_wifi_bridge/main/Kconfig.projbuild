@@ -1,0 +1,49 @@
+menu "ECG WiFi Bridge Configuration"
+
+    config ECG_WIFI_SSID
+        string "WiFi SSID"
+        default "ECG-Physio"
+        help
+            WiFi SoftAP SSID
+
+    config ECG_WIFI_PASSWORD
+        string "WiFi Password"
+        default ""
+        help
+            WiFi SoftAP password (empty for open network)
+
+    config ECG_WIFI_CHANNEL
+        int "WiFi Channel"
+        default 6
+        range 1 13
+        help
+            WiFi channel for SoftAP
+
+    config ECG_TCP_PORT
+        int "TCP Server Port"
+        default 12345
+        range 1 65535
+        help
+            TCP server port for data transmission
+
+    config ECG_DATA_MODE
+        int "Data Mode"
+        default 0
+        help
+            0: Simulated ECG data (for testing)
+            1: Real ECG data from STM32 via UART
+
+    config ECG_FRAME_RATE
+        int "Frame Rate (FPS)"
+        default 125
+        range 10 500
+        help
+            ECG data frame rate (frames per second)
+
+    config ECG_UART_BAUD
+        int "UART Baud Rate"
+        default 921600
+        help
+            UART baud rate for STM32 communication
+
+endmenu

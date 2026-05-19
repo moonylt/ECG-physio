@@ -1,153 +1,153 @@
-# PHYSIO FOR RODENT - 啮齿动物生理信号监测系统
+# PHYSIO FOR RODENT - Rodent Physiological Signal Monitoring System
 
 [![中文](https://img.shields.io/badge/中文-简体-blue)](README_CN.md) [![English](https://img.shields.io/badge/English-EN-green)](README_EN.md)
 
-专为啮齿动物（大鼠/小鼠）设计的多参数生理信号监测系统，支持 ECG、呼吸、SPO2、温度和血压测量。
+A multi-parameter physiological signal monitoring system designed for rodents (rats/mice), supporting ECG, respiration, SPO2, temperature, and blood pressure measurements.
 
 ---
 
-## 📊 系统框图
+## 📊 System Block Diagram
 
 ```
                     ┌─────────────────────────────────────────────────────────────────────────┐
-                    │                      生理信号监测系统 (PHYSIO)                              │
-                    │                         STM32F429ZGT6 主控                                │
+                    │                 Physiological Signal Monitoring System (PHYSIO)          │
+                    │                       STM32F429ZGT6 Main Controller                      │
                     └─────────────────────────────────────────────────────────────────────────┘
                                             ▲                    ▲
                                             │ UART               │ WiFi (ESP32)
                     ┌─────────────────────────────────────────────────────────────────────────┐
                     │  ┌─────────────┐    ┌───────────────────────────────────┐    ┌─────────┐│
-   生理信号 ────────│  │ ADS1298R    │    │          STM32F429ZGT6            │    │ ESP32   ││───► WiFi
-   (ECG/Resp)       │  │ ECG+Resp    │SPI │                                   │UART│ WiFi    ││    传输
-                    │  │ 采集芯片    │────│  • SPI 接口 (ADS1298R/MAX31856)   │────│ 模块    ││
-                    │  └─────────────┘    │  • I2C 接口 (TMP117/AFE4490)      │    └─────────┘│
-                    │                     │  • DAC 输出 (PID 温控)            │               │
-   血氧 ────────────│  ┌─────────────┐    │  • UART 数据传输                  │               │
-   (SPO2)           │  │ AFE4490     │I2C │                                   │               │
-                    │  │ SPO2 采集   │────│  ┌───────────────────────────┐    │               │
-                    │  └─────────────┘    │  │    PID 温度控制算法        │    │               │
-                    │                     │  │    ECG/Resp 信号处理       │    │               │
-   温度 ────────────│  ┌─────────────┐    │  │    SPO2 计算算法           │    │               │
-   (体温)           │  │ TMP117      │I2C │  │    数据打包/传输           │    │               │
-                    │  │ 温度传感器  │────│  └───────────────────────────┘    │               │
+   Physiological ──│  │ ADS1298R    │    │          STM32F429ZGT6            │    │ ESP32   ││───► WiFi
+   Signals         │  │ ECG+Resp    │SPI │                                   │UART│ WiFi    ││    Transfer
+   (ECG/Resp)      │  │ AFE Chip    │────│  • SPI Interface (ADS1298R/MAX31856)│────│ Module  ││
+                    │  └─────────────┘    │  • I2C Interface (TMP117/AFE4490) │    └─────────┘│
+                    │                     │  • DAC Output (PID Temp Control)  │               │
+   Oximetry ───────│  ┌─────────────┐    │  • UART Data Transmission         │               │
+   (SPO2)          │  │ AFE4490     │I2C │                                   │               │
+                    │  │ SPO2 AFE    │────│  ┌───────────────────────────┐    │               │
+                    │  └─────────────┘    │  │    PID Temperature Control │    │               │
+                    │                     │  │    ECG/Resp Signal Process  │    │               │
+   Temperature ────│  ┌─────────────┐    │  │    SPO2 Calculation         │    │               │
+   (Body Temp)     │  │ TMP117      │I2C │  │    Data Packaging/Transfer  │    │               │
+                    │  │ Temp Sensor │────│  └───────────────────────────┘    │               │
                     │  └─────────────┘    │                                   │               │
                     │                     │  ┌─────────┐    ┌─────────────┐   │               │
-   热电偶 ──────────│  ┌─────────────┐    │  │ DAC     │    │ PWM 输出    │   │               │
-   (动物体温)       │  │ MAX31856    │SPI │  │ 温控输出│    │ 时钟信号    │   │               │
-                    │  │ 热电偶接口  │────│  └─────────┘    └─────────────┘   │               │
+   Thermocouple ───│  ┌─────────────┐    │  │ DAC     │    │ PWM Output  │   │               │
+   (Animal Temp)   │  │ MAX31856    │SPI │  │ Temp Ctrl│    │ Clock Signal│   │               │
+                    │  │ TC Interface│────│  └─────────┘    └─────────────┘   │               │
                     │  └─────────────┘    │                                   │               │
                     │                     └───────────────────────────────────┘               │
                     │  ┌─────────────┐                                                        │
-   加热器 ──────────│  │ PNP Heater  │──────────────────────────────────────────────────────│───► 维持体温
-   (温度维持)       │  │ PCB 加热板  │                                                        │
+   Heater ─────────│  │ PNP Heater  │──────────────────────────────────────────────────────│───► Maintain
+   (Temp Maintain) │  │ PCB Heater  │                                                        │    Body Temp
                     │  └─────────────┘                                                        │
                     └─────────────────────────────────────────────────────────────────────────┘
                                             │ UART/USB
                                             ▼
                     ┌─────────────────────────────────────────────────────────────────────────┐
-                    │                      Python 控制台软件                                   │
+                    │                      Python Console Software                             │
                     │  ┌─────────────────────────────────────────────────────────────────────┐│
-                    │  │  • 4 通道 ECG 波形显示          • 实时 FFT 频谱分析                  ││
-                    │  │  • 呼吸波形显示                  • 心率/呼吸率计算                    ││
-                    │  │  • 温度监测                      • PID 温度控制                       ││
-                    │  │  • 数据保存 (CSV)               • WiFi/串口双模式通信                ││
+                    │  │  • 4-Channel ECG Waveform Display  • Real-time FFT Spectrum Analysis ││
+                    │  │  • Respiration Waveform Display     • Heart Rate/Resp Rate Calculation││
+                    │  │  • Temperature Monitoring           • PID Temperature Control          ││
+                    │  │  • Data Save (CSV)                  • WiFi/Serial Dual-mode Comm       ││
                     │  └─────────────────────────────────────────────────────────────────────┘│
                     └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
 ECG-physio/
-├── 1.HW/                           # 硬件设计文件
-│   ├── PHYSIO_PCB.jpg              # 主板 PCB 设计
-│   ├── PNP_HEATER_PCB.jpg          # 加热板 PCB 设计
-│   ├── SCH_Physio_*.pdf            # 原理图 PDF
-│   └── Netlist_Physio_*.tel        # 网表文件
-├── 2.MATLAB/                       # MATLAB 算法验证
-│   ├── ECG.m                       # ECG 信号处理脚本
-│   └── pan1985.pdf                 # Pan-Tompkins 算法参考
-├── 3.FIRMWARE/                     # 固件代码
-│   ├── 1.ST MCU/                   # STM32F429 固件
-│   │   └── Physio/                 # STM32CubeIDE 工程
-│   │       ├── Core/               # 核心代码
-│   │       │   ├── Inc/            # 头文件
-│   │       │   └── Src/            # 源文件
-│   │       │       ├── ADS1294.c   # ADS1298R 驋动
-│   │       │       ├── PID.c       # PID 温控算法
-│   │       │       ├── MAX31856drv.c # 热电偶驱动
-│   │       │       └── main.c      # 主程序
-│   │       └ Drivers/              # STM32 HAL 库
-│   └── 2.ESP32/                    # ESP32 WiFi 模块固件
-├── 4.Python console/               # Python 控制台软件
-│   ├── V1/                         # 版本 1 (基础版)
-│   │   ├── main.py                 # 主程序
-│   │   └── phsio.py                # 信号处理
-│   └── V2/                         # 版本 2 (增强版)
-│       ├── main.py                 # 主程序入口
-│       ├── ui/                     # UI 组件
-│       ├── comms/                  # 通信模块 (串口/WiFi)
-│       ├── signal_processing/      # 信号处理算法
-│       ├── data/                   # 数据处理
-│       └ utils/                    # 工具函数
-└── README.md                       # 项目说明
+├── 1.HW/                           # Hardware Design Files
+│   ├── PHYSIO_PCB.jpg              # Main Board PCB Design
+│   ├── PNP_HEATER_PCB.jpg          # Heater PCB Design
+│   ├── SCH_Physio_*.pdf            # Schematic PDF
+│   └── Netlist_Physio_*.tel        # Netlist File
+├── 2.MATLAB/                       # MATLAB Algorithm Verification
+│   ├── ECG.m                       # ECG Signal Processing Script
+│   └── pan1985.pdf                 # Pan-Tompkins Algorithm Reference
+├── 3.FIRMWARE/                     # Firmware Code
+│   ├── 1.ST MCU/                   # STM32F429 Firmware
+│   │   └── Physio/                 # STM32CubeIDE Project
+│   │       ├── Core/               # Core Code
+│   │       │   ├── Inc/            # Header Files
+│   │       │   └── Src/            # Source Files
+│   │       │       ├── ADS1294.c   # ADS1298R Driver
+│   │       │       ├── PID.c       # PID Temperature Control
+│   │       │       ├── MAX31856drv.c # Thermocouple Driver
+│   │       │       └── main.c      # Main Program
+│   │       └ Drivers/              # STM32 HAL Library
+│   └── 2.ESP32/                    # ESP32 WiFi Module Firmware
+├── 4.Python console/               # Python Console Software
+│   ├── V1/                         # Version 1 (Basic)
+│   │   ├── main.py                 # Main Program
+│   │   └── phsio.py                # Signal Processing
+│   └── V2/                         # Version 2 (Enhanced)
+│       ├── main.py                 # Main Entry Point
+│       ├── ui/                     # UI Components
+│       ├── comms/                  # Communication Module (Serial/WiFi)
+│       ├── signal_processing/      # Signal Processing Algorithms
+│       ├── data/                   # Data Processing
+│       └ utils/                    # Utility Functions
+└── README.md                       # Project Documentation
 ```
 
 ---
 
-## 🔧 硬件要求
+## 🔧 Hardware Requirements
 
-| 组件 | 型号 | 说明 |
-|------|------|------|
-| 主控 MCU | STM32F429ZGT6 | 180MHz, 1MB Flash, 256KB RAM |
-| ECG+Resp 芯片 | ADS1298R | 8 通道 24 位 ADC, 内置呼吸测量 |
-| SPO2 芯片 | AFE4490 | 脉搏血氧测量前端 |
-| 温度传感器 | TMP117 | 高精度数字温度传感器 |
-| 热电偶接口 | MAX31856 | 热电偶数字转换器 |
-| WiFi 模块 | ESP32 | WiFi 数据传输 |
-| 加热板 | PNP Heater PCB | 维持动物体温 |
-
----
-
-## 📋 功能特性
-
-### 硬件功能
-- **ECG 采集** - 4 通道心电图信号采集，24 位精度
-- **呼吸监测** - 阻抗法呼吸波形测量
-- **SPO2 测量** - 脉搏血氧饱和度监测
-- **温度监测** - 体温和环境温度测量
-- **PID 温控** - 自动加热维持动物体温
-- **血压测量** - 有创血压信号采集 (开发中)
-- **数据传输** - WiFi 和串口双模式输出
-
-### 软件功能 (Python 控制台)
-- **实时波形显示** - 4 通道 ECG + 呼吸波形
-- **FFT 频谱分析** - 0-250Hz 实时频谱
-- **心率检测** - Pan-Tompkins R 波检测算法
-- **呼吸率检测** - 阻抗呼吸波形分析
-- **数字滤波** - 50Hz 陷波、带通滤波
-- **数据保存** - CSV 格式导出
-- **WiFi 支持** - 远程数据传输
+| Component | Model | Description |
+|-----------|-------|-------------|
+| Main MCU | STM32F429ZGT6 | 180MHz, 1MB Flash, 256KB RAM |
+| ECG+Resp Chip | ADS1298R | 8-channel 24-bit ADC, built-in respiration measurement |
+| SPO2 Chip | AFE4490 | Pulse oximetry frontend |
+| Temperature Sensor | TMP117 | High-precision digital temperature sensor |
+| Thermocouple Interface | MAX31856 | Thermocouple digital converter |
+| WiFi Module | ESP32 | WiFi data transmission |
+| Heater | PNP Heater PCB | Maintain animal body temperature |
 
 ---
 
-## 🚀 快速开始
+## 📋 Features
 
-### 硬件准备
-1. 组装 PHYSIO PCB 主板
-2. 连接 ADS1298R ECG 采集模块
-3. 连接 TMP117/MAX31856 温度传感器
-4. 连接加热板 (用于体温维持)
-5. 连接 ESP32 WiFi 模块 (可选)
+### Hardware Features
+- **ECG Acquisition** - 4-channel ECG signal acquisition, 24-bit precision
+- **Respiration Monitoring** - Impedance-based respiration waveform measurement
+- **SPO2 Measurement** - Pulse oxygen saturation monitoring
+- **Temperature Monitoring** - Body and environmental temperature measurement
+- **PID Temperature Control** - Automatic heating to maintain animal body temperature
+- **Blood Pressure Measurement** - Invasive blood pressure signal acquisition (in development)
+- **Data Transmission** - WiFi and serial dual-mode output
 
-### 固件编译
-1. 使用 STM32CubeIDE 打开 `3.FIRMWARE/1.ST MCU/Physio`
-2. 编译并下载到 STM32F429
-3. ESP32 固件使用 Arduino IDE 编译
+### Software Features (Python Console)
+- **Real-time Waveform Display** - 4-channel ECG + respiration waveforms
+- **FFT Spectrum Analysis** - 0-250Hz real-time spectrum
+- **Heart Rate Detection** - Pan-Tompkins R-wave detection algorithm
+- **Respiration Rate Detection** - Impedance respiration waveform analysis
+- **Digital Filtering** - 50Hz notch filter, bandpass filter
+- **Data Saving** - CSV format export
+- **WiFi Support** - Remote data transmission
 
-### Python 控制台
+---
+
+## 🚀 Quick Start
+
+### Hardware Setup
+1. Assemble PHYSIO PCB main board
+2. Connect ADS1298R ECG acquisition module
+3. Connect TMP117/MAX31856 temperature sensors
+4. Connect heater board (for body temperature maintenance)
+5. Connect ESP32 WiFi module (optional)
+
+### Firmware Compilation
+1. Open `3.FIRMWARE/1.ST MCU/Physio` with STM32CubeIDE
+2. Compile and download to STM32F429
+3. ESP32 firmware compiled with Arduino IDE
+
+### Python Console
 ```bash
 cd "4.Python console/V2"
 pip install -r requirements.txt
@@ -156,37 +156,37 @@ python main.py
 
 ---
 
-## 📄 文档
+## 📄 Documentation
 
-| 文档 | 说明 |
-|------|------|
-| [硬件设计](1.HW/README.md) | PCB 和原理图说明 |
-| [MATLAB 算法](2.MATLAB/README.md) | ECG 处理算法验证 |
-| [Python 控制台](4.Python%20console/V2/README.md) | 软件使用说明 |
-| [WiFi 测试](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi 功能测试 |
+| Document | Description |
+|----------|-------------|
+| [Hardware Design](1.HW/README.md) | PCB and schematic documentation |
+| [MATLAB Algorithm](2.MATLAB/README.md) | ECG processing algorithm verification |
+| [Python Console](4.Python%20console/V2/README.md) | Software usage guide |
+| [WiFi Test](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi functionality test |
 
 ---
 
-## 🛠️ 工具版本
+## 🛠️ Tool Versions
 
 - STM32CubeIDE 1.x
-- STM32 HAL 库
+- STM32 HAL Library
 - Python 3.8+
 - PyQt5 5.15+
 - Arduino IDE (ESP32)
 
 ---
 
-## 📅 项目日期
+## 📅 Project Dates
 
-- 初版发布：2023-10-21
-- 更新版本：2025-09-23
+- Initial Release: 2023-10-21
+- Updated Version: 2025-09-23
 
 ---
 
-## 📧 联系方式
+## 📧 Contact
 
-如有问题，请提交 Issue 或联系项目维护者。
+For issues, please submit an Issue or contact the project maintainer.
 
 ---
 

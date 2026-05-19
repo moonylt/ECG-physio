@@ -29,6 +29,9 @@ class CircularBuffer:
         self.index = 0
         self.count = 0
 
+        # 通道增益
+        self.gains = [1.0] * num_channels
+
     def add_data(self, samples: np.ndarray):
         """
         添加数据
@@ -94,3 +97,29 @@ class CircularBuffer:
         self.data.fill(0)
         self.index = 0
         self.count = 0
+
+    def set_gain(self, channel: int, gain: float):
+        """
+        设置通道增益
+
+        Args:
+            channel: 通道索引 (0-based)
+            gain: 增益值
+        """
+        if 0 <= channel < self.num_channels:
+            self.gains[channel] = gain
+
+    def get_stats(self) -> dict:
+        """
+        获取缓冲区统计信息
+
+        Returns:
+            统计信息字典
+        """
+        return {
+            'count': self.count,
+            'max_points': self.max_points,
+            'num_channels': self.num_channels,
+            'index': self.index,
+            'gains': self.gains.copy()
+        }

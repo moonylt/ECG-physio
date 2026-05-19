@@ -187,3 +187,29 @@ python main.py
 ## 📧 联系方式
 
 如有问题，请提交 Issue 或联系项目维护者。
+
+---
+
+## 硬件原型
+
+![PHYSIO_PCB](https://github.com/user-attachments/assets/7622d6b0-4796-47c3-825c-8e8744fa1f35)
+
+## Python 控制台
+
+![python console](https://github.com/user-attachments/assets/d1b41586-4a6b-4fd0-b74a-d3e5fb1b1cc0)
+
+<img width="1400" height="930" alt="image" src="https://github.com/user-attachments/assets/2ca9f4a7-1213-45cd-bbab-9d5b22ac40f3" />
+
+---
+
+## 4 通道模拟 ECG 显示 (WiFi 模式)
+
+![4 通道模拟 ECG](4.Python%20console/V2/4CH-SIM.png)
+
+**通道说明：**
+| 通道 | 波形类型 | 说明 |
+|------|----------|------|
+| CH1 (Resp) | 呼吸波形 | 低频正弦波 (0.2Hz) |
+| CH2 (ECG) | 标准 ECG | P-QRS-T 复合波 |
+| CH3 (ECG+) | 增强 ECG | 幅度加大 50% |
+| CH4 (ECG*) | 噪声 ECG | 带额外噪声的 ECG |

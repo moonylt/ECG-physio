@@ -199,3 +199,17 @@ For issues, please submit an Issue or contact the project maintainer.
 ![python console](https://github.com/user-attachments/assets/d1b41586-4a6b-4fd0-b74a-d3e5fb1b1cc0)
 
 <img width="1400" height="930" alt="image" src="https://github.com/user-attachments/assets/2ca9f4a7-1213-45cd-bbab-9d5b22ac40f3" />
+
+---
+
+## 4-Channel Simulated ECG Display (WiFi Mode)
+
+![4-Channel Simulated ECG](4.Python%20console/V2/4CH-SIM.png)
+
+**Channel Descriptions:**
+| Channel | Waveform Type | Description |
+|---------|---------------|-------------|
+| CH1 (Resp) | Respiration | Low-frequency sinusoidal wave (0.2Hz) |
+| CH2 (ECG) | Standard ECG | P-QRS-T complex |
+| CH3 (ECG+) | Enhanced ECG | 50% increased amplitude |
+| CH4 (ECG*) | Noisy ECG | ECG with additional noise |

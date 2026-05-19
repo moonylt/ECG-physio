@@ -36,69 +36,56 @@ class StatusBar(QWidget):
         self.update_timer.start(500)  # 500ms 刷新一次
     
     def _init_ui(self):
-        """初始化 UI"""
+        """Initialize UI - compact status bar"""
         self.setStyleSheet("""
             StatusBar {
                 background-color: #2d2d44;
                 border-top: 1px solid #3d3d5c;
-                padding: 5px;
+                padding: 2px;
             }
             QLabel {
                 color: #ffffff;
-                padding: 2px 10px;
-            }
-            .highlight {
-                color: #4CAF50;
-                font-weight: bold;
-            }
-            .warning {
-                color: #ff9800;
-            }
-            .error {
-                color: #f44336;
+                padding: 1px 5px;
             }
         """)
-        
+
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
-        
-        # 心率显示
-        self.hr_label = QLabel("♥ 心率：-- BPM")
-        self.hr_label.setStyleSheet("font-weight: bold; font-size: 13px;")
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(5)
+
+        # Heart rate (compact)
+        self.hr_label = QLabel("HR: --")
+        self.hr_label.setStyleSheet("font-weight: bold; font-size: 12px;")
         layout.addWidget(self.hr_label)
-        
-        # 分隔线
+
         layout.addWidget(self._create_separator())
-        
-        # 呼吸率显示
-        self.br_label = QLabel("🫁 呼吸：-- RPM")
-        self.br_label.setStyleSheet("font-weight: bold; font-size: 13px;")
+
+        # Breath rate (compact)
+        self.br_label = QLabel("BR: --")
+        self.br_label.setStyleSheet("font-weight: bold; font-size: 12px;")
         layout.addWidget(self.br_label)
-        
-        # 分隔线
+
         layout.addWidget(self._create_separator())
-        
-        # 采样率显示
-        self.sr_label = QLabel(f"📊 采样率：{self.sampling_rate} SPS")
+
+        # Sampling rate (compact)
+        self.sr_label = QLabel(f"SPS: {self.sampling_rate}")
         layout.addWidget(self.sr_label)
-        
-        # 分隔线
+
         layout.addWidget(self._create_separator())
-        
-        # 连接状态
-        self.status_indicator = QLabel("● 未连接")
+
+        # Connection status
+        self.status_indicator = QLabel("Offline")
         self.status_indicator.setStyleSheet("color: #9e9e9e;")
         layout.addWidget(self.status_indicator)
-        
+
         layout.addStretch()
-        
-        # 接收统计
-        self.stats_label = "📥 接收：0 帧 | 0 B"
-        self.stats_label = QLabel(self.stats_label)
+
+        # Stats (compact)
+        self.stats_label = QLabel("Rx: 0")
         layout.addWidget(self.stats_label)
-        
-        # 错误计数
-        self.error_label = QLabel("⚠ 错误：0")
+
+        # Errors
+        self.error_label = QLabel("Err: 0")
         layout.addWidget(self.error_label)
     
     def _create_separator(self) -> QFrame:
@@ -110,78 +97,68 @@ class StatusBar(QWidget):
         return line
     
     def set_heart_rate(self, bpm: float):
-        """设置心率值"""
+        """Set heart rate"""
         self.heart_rate = bpm
         if bpm > 0:
-            self.hr_label.setText(f"♥ 心率：{bpm:.0f} BPM")
-            
-            # 根据心率设置颜色
+            self.hr_label.setText(f"HR: {bpm:.0f}")
             if 60 <= bpm <= 100:
-                self.hr_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 13px;")
+                self.hr_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12px;")
             elif bpm < 50 or bpm > 120:
-                self.hr_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 13px;")
+                self.hr_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 12px;")
             else:
-                self.hr_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 13px;")
+                self.hr_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 12px;")
         else:
-            self.hr_label.setText("♥ 心率：-- BPM")
-    
+            self.hr_label.setText("HR: --")
+            self.hr_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+
     def set_breath_rate(self, rpm: float):
-        """设置呼吸率值"""
+        """Set breath rate"""
         self.breath_rate = rpm
         if rpm > 0:
-            self.br_label.setText(f"🫁 呼吸：{rpm:.1f} RPM")
-            
-            # 根据呼吸率设置颜色
+            self.br_label.setText(f"BR: {rpm:.1f}")
             if 12 <= rpm <= 20:
-                self.br_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 13px;")
+                self.br_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12px;")
             elif rpm < 10 or rpm > 30:
-                self.br_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 13px;")
+                self.br_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 12px;")
             else:
-                self.br_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 13px;")
+                self.br_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 12px;")
         else:
-            self.br_label.setText("🫁 呼吸：-- RPM")
-    
+            self.br_label.setText("BR: --")
+            self.br_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+
     def set_sampling_rate(self, rate: int):
-        """设置采样率"""
+        """Set sampling rate"""
         self.sampling_rate = rate
-        self.sr_label.setText(f"📊 采样率：{rate} SPS")
-    
+        self.sr_label.setText(f"SPS: {rate}")
+
     def set_connected(self, connected: bool):
-        """设置连接状态"""
+        """Set connection status"""
         self.is_connected = connected
         if connected:
-            self.status_indicator.setText("● 运行中")
+            self.status_indicator.setText("Online")
             self.status_indicator.setStyleSheet("color: #4CAF50;")
         else:
-            self.status_indicator.setText("○ 未连接")
+            self.status_indicator.setText("Offline")
             self.status_indicator.setStyleSheet("color: #9e9e9e;")
-    
+
     def update_stats(self, frames: int, bytes_count: int, errors: int = 0):
-        """更新统计信息"""
+        """Update statistics"""
         self.frames_received = frames
         self.bytes_received = bytes_count
         self.error_count = errors
-        
-        # 格式化显示
+
         if frames >= 1000:
             frames_str = f"{frames/1000:.1f}k"
         else:
             frames_str = str(frames)
-        
-        if bytes_count >= 1000000:
-            bytes_str = f"{bytes_count/1000000:.1f}MB"
-        elif bytes_count >= 1000:
-            bytes_str = f"{bytes_count/1000:.1f}kB"
-        else:
-            bytes_str = str(bytes_count)
-        
-        self.stats_label.setText(f"📥 接收：{frames_str} 帧 | {bytes_str}")
-        
+
+        self.stats_label.setText(f"Rx: {frames_str}")
+
         if errors > 0:
-            self.error_label.setText(f"⚠ 错误：{errors}")
+            self.error_label.setText(f"Err: {errors}")
             self.error_label.setStyleSheet("color: #f44336;")
         else:
-            self.error_label.setText("⚠ 错误：0")
+            self.error_label.setText("Err: 0")
             self.error_label.setStyleSheet("color: #4CAF50;")
     
     def _update_display(self):
@@ -218,85 +195,68 @@ class ControlPanel(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        """初始化 UI"""
+        """Initialize UI - compact control panel"""
         self.setStyleSheet("""
             ControlPanel {
                 background-color: #2d2d44;
                 border-bottom: 1px solid #3d3d5c;
-                padding: 5px;
+                padding: 2px;
             }
             QPushButton {
                 background-color: #3d3d5c;
                 color: white;
                 border: none;
-                padding: 5px 15px;
-                border-radius: 3px;
-                margin: 0 2px;
+                padding: 3px 8px;
+                border-radius: 2px;
+                margin: 0 1px;
+                font-size: 11px;
             }
-            QPushButton:hover {
-                background-color: #4d4d6c;
-            }
-            QPushButton:pressed {
-                background-color: #2d2d44;
-            }
-            QPushButton:checked {
-                background-color: #4CAF50;
-            }
-            QPushButton:menu-indicator {
-                image: none;
-            }
+            QPushButton:hover { background-color: #4d4d6c; }
+            QPushButton:pressed { background-color: #2d2d44; }
+            QPushButton:checked { background-color: #4CAF50; }
         """)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(3)
 
-        # 保存按钮 (带下拉菜单)
+        # Save button with dropdown
         from PyQt5.QtWidgets import QMenu
         save_menu = QMenu()
-        save_menu.addAction("CSV 格式", lambda: self.save_csv_requested.emit())
-        save_menu.addAction("EDF 格式 (医学标准)", lambda: self.save_edf_requested.emit())
-        save_menu.addAction("MATLAB 格式", lambda: self.save_mat_requested.emit())
-        save_menu.addAction("导出报告 (JSON)", lambda: self.export_report_requested.emit())
-        
-        self.save_btn = QPushButton("💾 导出数据")
+        save_menu.addAction("CSV", lambda: self.save_csv_requested.emit())
+        save_menu.addAction("EDF", lambda: self.save_edf_requested.emit())
+        save_menu.addAction("MAT", lambda: self.save_mat_requested.emit())
+        save_menu.addAction("Report", lambda: self.export_report_requested.emit())
+
+        self.save_btn = QPushButton("Export")
         self.save_btn.setMenu(save_menu)
         layout.addWidget(self.save_btn)
 
-        # 截图按钮
-        self.screenshot_btn = QPushButton("📷 截图")
+        # Screenshot
+        self.screenshot_btn = QPushButton("Screenshot")
         self.screenshot_btn.clicked.connect(lambda: self.screenshot_requested.emit())
         layout.addWidget(self.screenshot_btn)
 
-        # 暂停按钮
-        self.pause_btn = QPushButton("⏸ 暂停")
+        # Pause
+        self.pause_btn = QPushButton("Pause")
         self.pause_btn.setCheckable(True)
         self.pause_btn.toggled.connect(lambda: self.pause_toggled.emit(self.pause_btn.isChecked()))
         layout.addWidget(self.pause_btn)
 
-        # 滤波开关
-        self.filter_btn = QPushButton("🔧 滤波：开")
+        # Filter
+        self.filter_btn = QPushButton("Filter")
         self.filter_btn.setCheckable(True)
         self.filter_btn.setChecked(True)
         self.filter_btn.toggled.connect(self._on_filter_toggled)
         layout.addWidget(self.filter_btn)
 
-        # 自动缩放
-        self.auto_scale_btn = QPushButton("📐 自动缩放")
-        self.auto_scale_btn.setCheckable(True)
-        self.auto_scale_btn.setChecked(True)
-        layout.addWidget(self.auto_scale_btn)
-
         layout.addStretch()
 
-        # 清除按钮
-        self.clear_btn = QPushButton("🗑 清除")
+        # Clear
+        self.clear_btn = QPushButton("Clear")
         self.clear_btn.clicked.connect(lambda: self.clear_requested.emit())
         layout.addWidget(self.clear_btn)
 
     def _on_filter_toggled(self, checked: bool):
-        """滤波开关切换"""
-        if checked:
-            self.filter_btn.setText("🔧 滤波：开")
-        else:
-            self.filter_btn.setText("🔧 滤波：关")
+        """Filter toggle"""
         self.filter_toggled.emit(checked)

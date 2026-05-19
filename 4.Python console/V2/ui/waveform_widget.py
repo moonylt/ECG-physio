@@ -59,48 +59,52 @@ class WaveformWidget(QWidget):
         self.y_ranges = [(-500, 500)] * self.num_channels
     
     def _init_ui(self):
-        """初始化 UI"""
+        """Initialize UI - compact layout"""
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(5, 5, 5, 5)
-        self.layout.setSpacing(5)
+        self.layout.setContentsMargins(2, 2, 2, 2)
+        self.layout.setSpacing(2)
 
-        # 创建 4 个绘图区域
+        # Create 4 plot areas
         self.plots = []
         self.curves = []
         self.x_data = np.array([])
 
-        # 配置 pyqtgraph 全局选项（性能优化）
-        pg.setConfigOptions(antialias=False)  # 禁用抗锯齿提高性能
-        pg.setConfigOptions(enableExperimental=True)  # 启用实验性功能
+        # Configure pyqtgraph (performance)
+        pg.setConfigOptions(antialias=False)
+        pg.setConfigOptions(enableExperimental=True)
 
         for i in range(self.num_channels):
-            # 创建绘图组件
+            # Create plot widget
             plot = pg.PlotWidget()
             plot.setMenuEnabled(False)
             plot.showGrid(x=True, y=True, alpha=0.3)
             plot.setBackground('#1a1a2e')
-            plot.setTitle(f'{self.CHANNEL_NAMES[i]}')
+            plot.setTitle(f'{self.CHANNEL_NAMES[i]}', size='9pt')
 
-            # 优化绘图选项
-            plot.setMouseEnabled(False, False)  # 禁用鼠标交互提高性能
-            plot.hideButtons()  # 隐藏自动缩放按钮
+            # Performance options
+            plot.setMouseEnabled(False, False)
+            plot.hideButtons()
 
-            # 设置坐标轴
+            # Axis labels
             plot.setLabel('left', '')
-            plot.setLabel('bottom', 'Time', units='s')
+            plot.setLabel('bottom', '')
 
-            # 设置 X 轴范围
+            # X axis range
             plot.setXRange(0, self.seconds_per_div * 10)
 
-            # 创建曲线（优化）
+            # Create curve (optimized)
             pen = pg.mkPen(color=self.CHANNEL_COLORS[i], width=1.5)
             curve = plot.plot(pen=pen, downsample='auto', clipToView=True)
+
+            # Set fixed height for each channel
+            plot.setMinimumHeight(80)
+            plot.setMaximumHeight(150)
 
             self.plots.append(plot)
             self.curves.append(curve)
             self.layout.addWidget(plot)
 
-        # 初始化 X 轴数据
+        # Initialize X axis data
         self._update_x_data()
     
     def _update_x_data(self):

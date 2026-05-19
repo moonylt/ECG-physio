@@ -76,54 +76,59 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
     
     def _init_ui(self):
-        """初始化 UI"""
-        # 中央组件
+        """Initialize UI"""
+        # Central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # 主布局
+        # Main layout
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout.setSpacing(2)
 
-        # 模式选择选项卡
+        # Mode tabs (compact)
         from PyQt5.QtWidgets import QTabWidget
         self.mode_tabs = QTabWidget()
+        self.mode_tabs.setMaximumHeight(50)  # Limit tab height
 
-        # 串口配置面板
+        # Serial panel
         self.serial_panel = SerialPanel(self.serial_manager)
-        self.mode_tabs.addTab(self.serial_panel, "串口模式")
+        self.serial_panel.setMaximumHeight(35)
+        self.mode_tabs.addTab(self.serial_panel, "Serial")
 
-        # WiFi 配置面板
+        # WiFi panel
         self.wifi_panel = WiFiPanel(self.wifi_manager)
-        self.mode_tabs.addTab(self.wifi_panel, "WiFi 模式")
+        self.wifi_panel.setMaximumHeight(35)
+        self.mode_tabs.addTab(self.wifi_panel, "WiFi")
 
         self.mode_tabs.currentChanged.connect(self._on_mode_changed)
         main_layout.addWidget(self.mode_tabs)
 
-        # 工具控制面板
+        # Control panel (compact)
         self.control_panel = ControlPanel()
+        self.control_panel.setMaximumHeight(30)
         main_layout.addWidget(self.control_panel)
 
-        # 分割器 (波形 + FFT)
+        # Splitter (waveform + FFT)
         splitter = QSplitter(Qt.Vertical)
 
-        # 波形显示组件
+        # Waveform display
         self.waveform_widget = WaveformWidget()
         splitter.addWidget(self.waveform_widget)
 
-        # FFT 频谱组件
+        # FFT spectrum
         self.fft_widget = FFTWidget(sampling_rate=500)
         splitter.addWidget(self.fft_widget)
 
-        # 设置分割比例
-        splitter.setStretchFactor(0, 3)
+        # Set splitter ratio (80% waveform, 20% FFT)
+        splitter.setStretchFactor(0, 4)
         splitter.setStretchFactor(1, 1)
 
         main_layout.addWidget(splitter)
 
-        # 状态栏
+        # Status bar (compact)
         self.status_bar = StatusBar()
+        self.status_bar.setMaximumHeight(25)
         main_layout.addWidget(self.status_bar)
     
     def _connect_signals(self):

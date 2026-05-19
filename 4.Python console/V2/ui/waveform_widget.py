@@ -29,7 +29,7 @@ class WaveformWidget(QWidget):
     ]
     
     # 通道名称
-    CHANNEL_NAMES = ['CH1 (呼吸)', 'CH2 (RA)', 'CH3 (LA)', 'CH4 (LL)']
+    CHANNEL_NAMES = ['CH1 (Resp)', 'CH2 (ECG)', 'CH3 (ECG+)', 'CH4 (ECG*)']
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -243,7 +243,7 @@ class WaveformLegend(QWidget):
         
         self.labels = []
         colors = ['#ff6b6b', '#51cf66', '#339af0', '#ffd43b']
-        names = ['CH1 (呼吸)', 'CH2 (RA)', 'CH3 (LA)', 'CH4 (LL)']
+        names = ['CH1 (Resp)', 'CH2 (ECG)', 'CH3 (ECG+)', 'CH4 (ECG*)']
         
         for i in range(4):
             label_widget = QWidget()

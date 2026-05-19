@@ -84,40 +84,65 @@ static uint8_t calculate_crc8(const uint8_t *data, size_t len)
 
 /**
  * 生成模拟 ECG 样本值
- * 使用正弦波叠加模拟 ECG 波形
+ * 不同通道生成不同波形便于观察：
+ * CH0: 呼吸波形（低频 0.2Hz）
+ * CH1: 标准 ECG 波形
+ * CH2: ECG 波形（幅度加大 50%）
+ * CH3: ECG 波形（带更多噪声）
  */
 static int32_t generate_ecg_sample(int channel, float phase)
 {
-    // 基础波形参数
     float value = 0;
+
+    // CH0: 呼吸波形（低频正弦波）
+    if (channel == 0) {
+        // 呼吸频率约 0.2Hz（每秒 12 次）
+        value = 0.5f * sinf(phase * 6.28f);  // 1Hz 正弦波作为呼吸
+        // 添加一些小波动
+        value += 0.1f * sinf(phase * 12.56f);
+        // 缩放
+        int32_t sample = (int32_t)(value * 2000000);  // 较小幅度
+        return sample;
+    }
+
+    // CH1-CH3: ECG 波形（不同参数）
+    float amplitude_scale = 1.0f;
+    float noise_level = 0.02f;
+
+    if (channel == 1) {
+        amplitude_scale = 1.0f;    // 标准 ECG
+        noise_level = 0.01f;
+    } else if (channel == 2) {
+        amplitude_scale = 1.5f;    // 幅度加大 50%
+        noise_level = 0.02f;
+    } else if (channel == 3) {
+        amplitude_scale = 0.8f;    // 幅度减小
+        noise_level = 0.05f;       // 更多噪声
+    }
 
     // P 波
     float p_phase = phase - 0.1f;
     if (p_phase > -0.1f && p_phase < 0.1f) {
-        value += 0.15f * sinf(p_phase * 31.4f);
+        value += 0.15f * amplitude_scale * sinf(p_phase * 31.4f);
     }
 
     // QRS 复合波
     float qrs_phase = phase - 0.3f;
     if (qrs_phase > -0.05f && qrs_phase < 0.05f) {
-        value += 1.0f * sinf(qrs_phase * 62.8f);
+        value += 1.0f * amplitude_scale * sinf(qrs_phase * 62.8f);
     }
     if (qrs_phase > -0.02f && qrs_phase < 0.02f) {
-        value += 0.3f * sinf(qrs_phase * 157.0f);
+        value += 0.3f * amplitude_scale * sinf(qrs_phase * 157.0f);
     }
 
     // T 波
     float t_phase = phase - 0.5f;
     if (t_phase > -0.15f && t_phase < 0.15f) {
-        value += 0.3f * sinf(t_phase * 20.9f);
+        value += 0.3f * amplitude_scale * sinf(t_phase * 20.9f);
     }
 
-    // 添加通道偏移（模拟不同导联）
-    float channel_offset = channel * 0.1f;
-    value += channel_offset;
-
-    // 添加少量噪声
-    value += (float)(rand() % 100 - 50) / 1000.0f;
+    // 添加噪声
+    value += (float)(rand() % 100 - 50) / 1000.0f * (noise_level * 50);
 
     // 缩放到 24 位范围 (±8388608)
     int32_t sample = (int32_t)(value * 4000000);

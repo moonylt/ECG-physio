@@ -75,11 +75,11 @@ ECG-physio/
 │   │       ├── Core/               # 核心代码
 │   │       │   ├── Inc/            # 头文件
 │   │       │   └── Src/            # 源文件
-│   │       │       ├── ADS1294.c   # ADS1298R 驋动
+│   │       │       ├── ADS1294.c   # ADS1298R 驱动
 │   │       │       ├── PID.c       # PID 温控算法
 │   │       │       ├── MAX31856drv.c # 热电偶驱动
 │   │       │       └── main.c      # 主程序
-│   │       └ Drivers/              # STM32 HAL 库
+│   │       └── Drivers/            # STM32 HAL 库
 │   └── 2.ESP32/                    # ESP32 WiFi 模块固件
 ├── 4.Python console/               # Python 控制台软件
 │   ├── V1/                         # 版本 1 (基础版)
@@ -91,7 +91,7 @@ ECG-physio/
 │       ├── comms/                  # 通信模块 (串口/WiFi)
 │       ├── signal_processing/      # 信号处理算法
 │       ├── data/                   # 数据处理
-│       └ utils/                    # 工具函数
+│       └── utils/                  # 工具函数
 └── README.md                       # 项目说明
 ```
 
@@ -187,15 +187,3 @@ python main.py
 ## 📧 联系方式
 
 如有问题，请提交 Issue 或联系项目维护者。
-
----
-
-## Hardware Prototype
-
-![PHYSIO_PCB](https://github.com/user-attachments/assets/7622d6b0-4796-47c3-825c-8e8744fa1f35)
-
-## Python Console
-
-![python console](https://github.com/user-attachments/assets/d1b41586-4a6b-4fd0-b74a-d3e5fb1b1cc0)
-
-<img width="1400" height="930" alt="image" src="https://github.com/user-attachments/assets/2ca9f4a7-1213-45cd-bbab-9d5b22ac40f3" />

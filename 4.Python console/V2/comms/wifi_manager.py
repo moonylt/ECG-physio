@@ -1,35 +1,43 @@
 # -*- coding: utf-8 -*-
 """
-WiFi 管理器模块
-负责与 ESP32 建立 WiFi TCP 连接，提供类似 SerialManager 的接口
+WiFi Manager Module
+Manages WiFi TCP connection with ESP32, provides SerialManager-like interface
+Supports device discovery via WiFi AP scanning
 """
 
 import socket
-from PyQt5.QtCore import QObject, pyqtSignal
+from typing import List, Dict
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from comms.tcp_client import TCPClient
+from comms.wifi_scanner import WiFiScanner, WiFiScannerWorker, WiFiAPInfo
 
 
 class WiFiManager(QObject):
     """
-    WiFi 管理器
-    提供 WiFi 连接、断开、数据收发等功能
+    WiFi Manager
+    Provides WiFi connection, disconnect, data send/receive and device discovery
     """
+
+    # Signals
     data_received = pyqtSignal(bytes)
     connected = pyqtSignal()
     disconnected = pyqtSignal()
     error_occurred = pyqtSignal(str)
     connection_status_changed = pyqtSignal(bool)  # is_connected
+    devices_found = pyqtSignal(list)  # List of ECG device dicts
 
-    # ESP32 默认配置
-    DEFAULT_ESP32_IP = "192.168.4.1"  # ESP32 SoftAP 默认 IP
+    # ESP32 default config
+    DEFAULT_ESP32_IP = "192.168.4.1"  # ESP32 SoftAP default IP
     DEFAULT_PORT = 12345
 
     def __init__(self):
         super().__init__()
         self.tcp_client = TCPClient()
         self.is_connected = False
+        self._scanner = WiFiScanner()
+        self._scan_worker = None
 
-        # 连接 TCP 客户端信号
+        # Connect TCP client signals
         self.tcp_client.data_received.connect(self.data_received)
         self.tcp_client.connected.connect(self._on_tcp_connected)
         self.tcp_client.disconnected.connect(self._on_tcp_disconnected)
@@ -128,14 +136,93 @@ class WiFiManager(QObject):
 
     def get_available_aps(self) -> list:
         """
-        获取可用的 WiFi AP 列表（需要系统支持）
-        注意：此功能在不同平台实现不同，暂时返回空列表
+        Get available WiFi AP list (legacy method, returns all APs)
 
         Returns:
-            AP 名称列表
+            AP name list
         """
-        # TODO: 实现平台相关的 WiFi 扫描
-        # Windows: 使用 wlanapi
-        # macOS: 使用 CoreWLAN
-        # Linux: 使用 iwlist/iw
-        return []
+        all_aps = self._scanner.scan()
+        return [ap.ssid for ap in all_aps]
+
+    # ==================== New Device Discovery Methods ====================
+
+    def scan_esp32_devices(self) -> List[Dict]:
+        """
+        Scan for ECG-Physio ESP32 devices (synchronous)
+
+        Returns:
+            List of device dicts with ssid, bssid, signal, channel
+        """
+        devices = self._scanner.scan_ecg_devices()
+        return [
+            {
+                'ssid': d.ssid,
+                'bssid': d.bssid,
+                'signal': d.signal,
+                'channel': d.channel,
+                'security': d.security
+            }
+            for d in devices
+        ]
+
+    def scan_esp32_devices_async(self):
+        """
+        Scan for ECG-Physio devices asynchronously
+
+        Emits devices_found signal when scan completes
+        """
+        if self._scan_worker and self._scan_worker.isRunning():
+            return  # Already scanning
+
+        self._scan_worker = WiFiScannerWorker(filter_ecg=True)
+        self._scan_worker.scan_complete.connect(self._on_scan_complete)
+        self._scan_worker.scan_error.connect(self._on_scan_error)
+        self._scan_worker.start()
+
+    def _on_scan_complete(self, devices: list):
+        """Scan complete callback"""
+        self.devices_found.emit(devices)
+
+    def _on_scan_error(self, error: str):
+        """Scan error callback"""
+        self.error_occurred.emit(f"WiFi scan error: {error}")
+
+    def get_current_wifi_ssid(self) -> str:
+        """
+        Get currently connected WiFi SSID
+
+        Returns:
+            SSID string or empty if not connected
+        """
+        conn = self._scanner.get_current_connection()
+        return conn.get('ssid', '')
+
+    def get_current_wifi_connection(self) -> Dict:
+        """
+        Get current WiFi connection details
+
+        Returns:
+            dict with ssid, bssid, connected
+        """
+        return self._scanner.get_current_connection()
+
+    def is_connected_to_ecg_ap(self) -> bool:
+        """
+        Check if currently connected to ECG-Physio AP
+
+        Returns:
+            True if connected to ECG-Physio AP
+        """
+        ssid = self.get_current_wifi_ssid()
+        return ssid.startswith(WiFiScanner.TARGET_SSID_PREFIX)
+
+    def get_selected_device_ip(self) -> str:
+        """
+        Get IP address for selected ECG device
+
+        ESP32 SoftAP always uses 192.168.4.1
+
+        Returns:
+            Default ESP32 IP address
+        """
+        return self.DEFAULT_ESP32_IP

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-WiFi 连接面板
-提供 WiFi 参数配置和连接控制
+WiFi Connection Panel
+Provides WiFi device discovery and TCP connection control
 """
 
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QLabel,
                              QComboBox, QPushButton, QGroupBox, QVBoxLayout,
-                             QMessageBox, QLineEdit, QRadioButton)
+                             QMessageBox, QLineEdit, QApplication)
 from PyQt5.QtCore import pyqtSignal, QTimer
 
 from comms.wifi_manager import WiFiManager
@@ -14,10 +14,11 @@ from comms.wifi_manager import WiFiManager
 
 class WiFiPanel(QWidget):
     """
-    WiFi 配置面板
+    WiFi Configuration Panel
+    Supports device discovery via WiFi AP scanning
     """
 
-    # 信号
+    # Signals
     connect_requested = pyqtSignal(str, int)
     disconnect_requested = pyqtSignal()
 
@@ -26,71 +27,114 @@ class WiFiPanel(QWidget):
 
         self.wifi_manager = wifi_manager
 
-        # 连接 WiFi 管理器信号
+        # Connect WiFi manager signals
         self.wifi_manager.connected.connect(self._on_connected)
         self.wifi_manager.disconnected.connect(self._on_disconnected)
         self.wifi_manager.error_occurred.connect(self._on_error)
+        self.wifi_manager.devices_found.connect(self._on_devices_found)
 
-        # 创建 UI
+        # Create UI
         self._init_ui()
 
-        # 测试定时器
+        # Timers
         self.test_timer = QTimer()
         self.test_timer.timeout.connect(self._on_test_timeout)
 
+        self.wifi_status_timer = QTimer()
+        self.wifi_status_timer.timeout.connect(self._update_wifi_status)
+
+        # Start WiFi status update timer
+        self.wifi_status_timer.start(2000)  # Update every 2 seconds
+
     def _init_ui(self):
-        """初始化 UI"""
+        """Initialize UI"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
 
-        # 连接模式选择
-        mode_group = QGroupBox("连接模式")
-        mode_layout = QHBoxLayout()
+        # ==================== Device Discovery Section ====================
+        discovery_group = QGroupBox("Device Discovery")
+        discovery_layout = QVBoxLayout()
 
-        self.esp32_ap_radio = QRadioButton("ESP32 AP 模式 (192.168.4.1)")
-        self.esp32_ap_radio.setChecked(True)
-        self.esp32_ap_radio.toggled.connect(self._on_mode_changed)
+        # Scan button
+        scan_btn_layout = QHBoxLayout()
+        self.scan_btn = QPushButton("Scan Devices")
+        self.scan_btn.setFixedWidth(120)
+        self.scan_btn.clicked.connect(self._scan_devices)
+        scan_btn_layout.addWidget(self.scan_btn)
+        scan_btn_layout.addStretch()
+        discovery_layout.addLayout(scan_btn_layout)
 
-        self.custom_radio = QRadioButton("自定义 TCP 服务器")
-        self.custom_radio.toggled.connect(self._on_mode_changed)
+        # Device list
+        device_layout = QHBoxLayout()
+        device_layout.addWidget(QLabel("ECG Devices:"))
+        self.device_combo = QComboBox()
+        self.device_combo.setMinimumWidth(200)
+        self.device_combo.addItem("Click 'Scan' to find devices")
+        self.device_combo.currentIndexChanged.connect(self._on_device_selected)
+        device_layout.addWidget(self.device_combo)
+        discovery_layout.addLayout(device_layout)
 
-        mode_layout.addWidget(self.esp32_ap_radio)
-        mode_layout.addWidget(self.custom_radio)
-        mode_group.setLayout(mode_layout)
-        layout.addWidget(mode_group)
+        # Device info label
+        self.device_info_label = QLabel("")
+        self.device_info_label.setStyleSheet("color: #666; font-size: 11px;")
+        discovery_layout.addWidget(self.device_info_label)
 
-        # IP 和端口配置
-        config_group = QGroupBox("服务器配置")
+        discovery_group.setLayout(discovery_layout)
+        layout.addWidget(discovery_group)
+
+        # ==================== WiFi Status Section ====================
+        wifi_status_group = QGroupBox("WiFi Status")
+        wifi_status_layout = QVBoxLayout()
+
+        # Current WiFi connection
+        self.wifi_status_label = QLabel("Current WiFi: Checking...")
+        self.wifi_status_label.setStyleSheet("color: #666;")
+        wifi_status_layout.addWidget(self.wifi_status_label)
+
+        # ECG connection status
+        self.ecg_ap_status_label = QLabel("ECG AP: Not connected")
+        self.ecg_ap_status_label.setStyleSheet("color: #f44336;")
+        wifi_status_layout.addWidget(self.ecg_ap_status_label)
+
+        # Hint label
+        self.hint_label = QLabel("Hint: Use system WiFi settings to connect to 'ECG-Physio' AP")
+        self.hint_label.setStyleSheet("color: #2196F3; font-size: 11px;")
+        wifi_status_layout.addWidget(self.hint_label)
+
+        wifi_status_group.setLayout(wifi_status_layout)
+        layout.addWidget(wifi_status_group)
+
+        # ==================== TCP Connection Section ====================
+        tcp_group = QGroupBox("TCP Connection")
+        tcp_layout = QVBoxLayout()
+
+        # IP/Port row
         config_layout = QHBoxLayout()
-
-        # IP 地址输入
-        config_layout.addWidget(QLabel("IP 地址:"))
+        config_layout.addWidget(QLabel("IP:"))
         self.ip_edit = QLineEdit("192.168.4.1")
         self.ip_edit.setFixedWidth(130)
-        self.ip_edit.setEnabled(False)  # 默认禁用，ESP32 AP 模式下自动使用
+        self.ip_edit.setEnabled(True)  # Allow manual input for custom cases
         config_layout.addWidget(self.ip_edit)
 
-        # 端口输入
-        config_layout.addWidget(QLabel("端口:"))
+        config_layout.addWidget(QLabel("Port:"))
         self.port_edit = QLineEdit("12345")
         self.port_edit.setFixedWidth(60)
-        self.port_edit.setEnabled(False)
         config_layout.addWidget(self.port_edit)
 
-        # 测试连接按钮
-        self.test_btn = QPushButton("测试")
-        self.test_btn.setFixedWidth(50)
-        self.test_btn.clicked.connect(self._test_connection)
-        config_layout.addWidget(self.test_btn)
+        config_layout.addStretch()
+        tcp_layout.addLayout(config_layout)
 
-        config_group.setLayout(config_layout)
-        layout.addWidget(config_group)
-
-        # 连接/断开按钮
+        # Buttons row
         btn_layout = QHBoxLayout()
+
+        self.test_btn = QPushButton("Test")
+        self.test_btn.setFixedWidth(60)
+        self.test_btn.clicked.connect(self._test_connection)
+        btn_layout.addWidget(self.test_btn)
+
         btn_layout.addStretch()
 
-        self.connect_btn = QPushButton("连接")
+        self.connect_btn = QPushButton("Connect")
         self.connect_btn.setFixedWidth(100)
         self.connect_btn.setStyleSheet("""
             QPushButton {
@@ -111,114 +155,209 @@ class WiFiPanel(QWidget):
         self.connect_btn.clicked.connect(self._toggle_connection)
         btn_layout.addWidget(self.connect_btn)
 
-        layout.addLayout(btn_layout)
+        tcp_layout.addLayout(btn_layout)
 
-        # 状态标签
-        self.status_label = QLabel("状态：未连接")
-        self.status_label.setStyleSheet("color: #666;")
-        layout.addWidget(self.status_label)
+        # Status label
+        self.tcp_status_label = QLabel("Status: Not connected")
+        self.tcp_status_label.setStyleSheet("color: #666;")
+        tcp_layout.addWidget(self.tcp_status_label)
 
-    def _on_mode_changed(self):
-        """模式切换"""
-        if self.esp32_ap_radio.isChecked():
-            self.ip_edit.setEnabled(False)
-            self.ip_edit.setText("192.168.4.1")
-            self.port_edit.setEnabled(False)
-            self.port_edit.setText("12345")
+        tcp_group.setLayout(tcp_layout)
+        layout.addWidget(tcp_group)
+
+        # Initial WiFi status update
+        self._update_wifi_status()
+
+    # ==================== Device Discovery ====================
+
+    def _scan_devices(self):
+        """Scan for ECG devices"""
+        self.scan_btn.setEnabled(False)
+        self.scan_btn.setText("Scanning...")
+        self.device_combo.clear()
+        self.device_combo.addItem("Scanning...")
+
+        # Use async scan
+        self.wifi_manager.scan_esp32_devices_async()
+
+    def _on_devices_found(self, devices: list):
+        """Devices found callback"""
+        self.scan_btn.setEnabled(True)
+        self.scan_btn.setText("Scan Devices")
+        self.device_combo.clear()
+
+        if devices:
+            for d in devices:
+                signal_text = f"{d['signal']}%"
+                self.device_combo.addItem(f"{d['ssid']} ({signal_text})", d)
+
+            self.device_info_label.setText(f"Found {len(devices)} ECG-Physio device(s)")
+            self.device_info_label.setStyleSheet("color: #4CAF50; font-size: 11px;")
         else:
-            self.ip_edit.setEnabled(True)
-            self.port_edit.setEnabled(True)
+            self.device_combo.addItem("No ECG devices found")
+            self.device_info_label.setText("Make sure ESP32 is powered on")
+            self.device_info_label.setStyleSheet("color: #f44336; font-size: 11px;")
+            QMessageBox.information(
+                self, "No Devices Found",
+                "No ECG-Physio devices found.\n\n"
+                "Please check:\n"
+                "• ESP32 is powered on\n"
+                "• ESP32 firmware is running\n"
+                "• WiFi AP 'ECG-Physio' is active"
+            )
 
-    def _toggle_connection(self):
-        """切换连接状态"""
-        if self.wifi_manager.is_connected:
-            self.wifi_manager.disconnect()
-        else:
-            # 获取配置
-            if self.esp32_ap_radio.isChecked():
-                ip = "192.168.4.1"
-                port = 12345
+    def _on_device_selected(self, index: int):
+        """Device selected callback"""
+        if index < 0:
+            return
+
+        device_data = self.device_combo.currentData()
+        if device_data:
+            # Update device info label
+            bssid = device_data.get('bssid', 'Unknown')
+            channel = device_data.get('channel', 'Unknown')
+            security = device_data.get('security', 'Unknown')
+            self.device_info_label.setText(f"MAC: {bssid} | Channel: {channel} | Security: {security}")
+            self.device_info_label.setStyleSheet("color: #4CAF50; font-size: 11px;")
+
+    # ==================== WiFi Status ====================
+
+    def _update_wifi_status(self):
+        """Update WiFi connection status"""
+        conn = self.wifi_manager.get_current_wifi_connection()
+        ssid = conn.get('ssid', '')
+        connected = conn.get('connected', False)
+
+        if connected and ssid:
+            self.wifi_status_label.setText(f"Current WiFi: {ssid}")
+            self.wifi_status_label.setStyleSheet("color: #4CAF50;")
+
+            # Check if connected to ECG AP
+            if ssid.startswith("ECG-Physio"):
+                self.ecg_ap_status_label.setText("ECG AP: Connected")
+                self.ecg_ap_status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+                self.hint_label.setText("Ready to connect! Click 'Connect' button")
+                self.hint_label.setStyleSheet("color: #4CAF50; font-size: 11px;")
             else:
-                ip = self.ip_edit.text().strip()
-                port_str = self.port_edit.text().strip()
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    QMessageBox.warning(self, "警告", "端口号必须是数字！")
-                    return
+                self.ecg_ap_status_label.setText("ECG AP: Not connected (connected to other WiFi)")
+                self.ecg_ap_status_label.setStyleSheet("color: #f44336;")
+                self.hint_label.setText("Please disconnect current WiFi and connect to 'ECG-Physio' AP")
+                self.hint_label.setStyleSheet("color: #FF9800; font-size: 11px;")
+        else:
+            self.wifi_status_label.setText("Current WiFi: Not connected")
+            self.wifi_status_label.setStyleSheet("color: #666;")
+            self.ecg_ap_status_label.setText("ECG AP: Not connected")
+            self.ecg_ap_status_label.setStyleSheet("color: #f44336;")
+            self.hint_label.setText("Hint: Use system WiFi settings to connect to 'ECG-Physio' AP")
+            self.hint_label.setStyleSheet("color: #2196F3; font-size: 11px;")
 
-                if not ip:
-                    QMessageBox.warning(self, "警告", "请输入 IP 地址！")
-                    return
-
-            self.connect_btn.setEnabled(False)
-            self.connect_btn.setText("连接中...")
-
-            # 异步连接
-            success = self.wifi_manager.connect_to_custom(ip, port) if not self.esp32_ap_radio.isChecked() \
-                else self.wifi_manager.connect_to_esp32()
-
-            if not success:
-                self.connect_btn.setEnabled(True)
-                self.connect_btn.setText("连接")
+    # ==================== TCP Connection ====================
 
     def _test_connection(self):
-        """测试连接"""
-        if self.esp32_ap_radio.isChecked():
-            ip = "192.168.4.1"
-            port = 12345
-        else:
-            ip = self.ip_edit.text().strip()
-            try:
-                port = int(self.port_edit.text().strip())
-            except ValueError:
-                QMessageBox.warning(self, "警告", "端口号必须是数字！")
-                return
+        """Test TCP connection"""
+        ip = self.ip_edit.text().strip()
+        try:
+            port = int(self.port_edit.text().strip())
+        except ValueError:
+            QMessageBox.warning(self, "Warning", "Port must be a number!")
+            return
 
         if not ip:
-            QMessageBox.warning(self, "警告", "请输入 IP 地址！")
+            QMessageBox.warning(self, "Warning", "Please enter IP address!")
             return
 
         self.test_btn.setEnabled(False)
-        self.test_btn.setText("测试中...")
-        self.status_label.setText("状态：正在测试连接...")
+        self.test_btn.setText("Testing...")
+        self.tcp_status_label.setText("Status: Testing connection...")
+        self.tcp_status_label.setStyleSheet("color: #2196F3;")
 
-        # 在后台线程测试
+        # Test in background thread
         import threading
         def test_thread():
             result = self.wifi_manager.test_connection(ip, port)
+            QApplication.processEvents()
             self.test_timer.singleShot(0, lambda: self._on_test_result(result, ip, port))
 
         threading.Thread(target=test_thread, daemon=True).start()
 
     def _on_test_timeout(self):
-        """测试超时"""
+        """Test timeout"""
         pass
 
     def _on_test_result(self, result: bool, ip: str, port: int):
-        """测试结果回调"""
+        """Test result callback"""
         self.test_btn.setEnabled(True)
-        self.test_btn.setText("测试")
+        self.test_btn.setText("Test")
 
         if result:
-            self.status_label.setText(f"状态：可连接到 {ip}:{port}")
-            self.status_label.setStyleSheet("color: #4CAF50;")
+            self.tcp_status_label.setText(f"Status: Can connect to {ip}:{port}")
+            self.tcp_status_label.setStyleSheet("color: #4CAF50;")
             QMessageBox.information(
-                self, "测试成功",
-                f"可以连接到 {ip}:{port}\n请点击'连接'按钮建立连接"
+                self, "Test Success",
+                f"Can connect to {ip}:{port}\n\nClick 'Connect' to establish connection"
             )
         else:
-            self.status_label.setText(f"状态：无法连接到 {ip}:{port}")
-            self.status_label.setStyleSheet("color: #f44336;")
+            self.tcp_status_label.setText(f"Status: Cannot connect to {ip}:{port}")
+            self.tcp_status_label.setStyleSheet("color: #f44336;")
             QMessageBox.warning(
-                self, "测试失败",
-                f"无法连接到 {ip}:{port}\n\n请检查:\n1. ESP32 是否已上电并运行固件\n2. 电脑是否已连接到 ESP32 热点\n3. IP 地址和端口是否正确"
+                self, "Test Failed",
+                f"Cannot connect to {ip}:{port}\n\n"
+                "Please check:\n"
+                "• ESP32 is powered on\n"
+                "• Computer is connected to 'ECG-Physio' WiFi AP\n"
+                "• IP and port are correct"
             )
 
+    def _toggle_connection(self):
+        """Toggle connection state"""
+        if self.wifi_manager.is_connected:
+            self.wifi_manager.disconnect()
+        else:
+            # Check WiFi connection first
+            if not self.wifi_manager.is_connected_to_ecg_ap():
+                conn = self.wifi_manager.get_current_wifi_connection()
+                current_ssid = conn.get('ssid', '')
+
+                reply = QMessageBox.question(
+                    self, "WiFi Not Connected",
+                    f"You are currently connected to: {current_ssid or 'No WiFi'}\n\n"
+                    "Please connect to 'ECG-Physio' WiFi AP first.\n\n"
+                    "Continue anyway?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+
+                if reply == QMessageBox.No:
+                    return
+
+            # Get IP and port
+            ip = self.ip_edit.text().strip()
+            try:
+                port = int(self.port_edit.text().strip())
+            except ValueError:
+                QMessageBox.warning(self, "Warning", "Port must be a number!")
+                return
+
+            if not ip:
+                QMessageBox.warning(self, "Warning", "Please enter IP address!")
+                return
+
+            self.connect_btn.setEnabled(False)
+            self.connect_btn.setText("Connecting...")
+            self.tcp_status_label.setText("Status: Connecting...")
+            self.tcp_status_label.setStyleSheet("color: #2196F3;")
+
+            # Connect
+            success = self.wifi_manager.connect_to_custom(ip, port)
+
+            if not success:
+                self.connect_btn.setEnabled(True)
+                self.connect_btn.setText("Connect")
+
     def _on_connected(self):
-        """连接成功回调"""
+        """Connected callback"""
         self.connect_btn.setEnabled(True)
-        self.connect_btn.setText("断开")
+        self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet("""
             QPushButton {
                 background-color: #f44336;
@@ -233,16 +372,16 @@ class WiFiPanel(QWidget):
             }
         """)
 
-        self.status_label.setText(f"状态：已连接 - {self.wifi_manager.get_status()}")
-        self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+        self.tcp_status_label.setText(f"Status: Connected - {self.wifi_manager.get_status()}")
+        self.tcp_status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
 
-        # 禁用配置
+        # Disable controls
         self._set_controls_enabled(False)
 
     def _on_disconnected(self):
-        """断开连接回调"""
+        """Disconnected callback"""
         self.connect_btn.setEnabled(True)
-        self.connect_btn.setText("连接")
+        self.connect_btn.setText("Connect")
         self.connect_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2196F3;
@@ -257,31 +396,30 @@ class WiFiPanel(QWidget):
             }
         """)
 
-        self.status_label.setText("状态：未连接")
-        self.status_label.setStyleSheet("color: #666;")
+        self.tcp_status_label.setText("Status: Not connected")
+        self.tcp_status_label.setStyleSheet("color: #666;")
 
-        # 启用配置
+        # Enable controls
         self._set_controls_enabled(True)
 
     def _on_error(self, error_msg: str):
-        """错误回调"""
+        """Error callback"""
         self.connect_btn.setEnabled(True)
-        self.connect_btn.setText("连接")
-        self.status_label.setText(f"状态：错误 - {error_msg}")
-        self.status_label.setStyleSheet("color: #f44336;")
+        self.connect_btn.setText("Connect")
+        self.tcp_status_label.setText(f"Status: Error - {error_msg}")
+        self.tcp_status_label.setStyleSheet("color: #f44336;")
 
-        QMessageBox.critical(self, "WiFi 连接错误", error_msg)
+        QMessageBox.critical(self, "WiFi Connection Error", error_msg)
         self._on_disconnected()
 
     def _set_controls_enabled(self, enabled: bool):
-        """设置控件启用状态"""
-        self.esp32_ap_radio.setEnabled(enabled)
-        self.custom_radio.setEnabled(enabled)
-        if not self.esp32_ap_radio.isChecked():
-            self.ip_edit.setEnabled(enabled)
-            self.port_edit.setEnabled(enabled)
+        """Set controls enabled state"""
+        self.scan_btn.setEnabled(enabled)
+        self.device_combo.setEnabled(enabled)
+        self.ip_edit.setEnabled(enabled)
+        self.port_edit.setEnabled(enabled)
         self.test_btn.setEnabled(enabled)
 
     def get_connection_status(self) -> str:
-        """获取连接状态"""
+        """Get connection status"""
         return self.wifi_manager.get_status()

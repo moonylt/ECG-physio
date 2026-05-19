@@ -43,8 +43,8 @@ class WiFiPanel(QWidget):
         self.wifi_status_timer = QTimer()
         self.wifi_status_timer.timeout.connect(self._update_wifi_status)
 
-        # Start WiFi status update timer
-        self.wifi_status_timer.start(2000)  # Update every 2 seconds
+        # Start WiFi status update timer (reduce frequency to avoid lag)
+        self.wifi_status_timer.start(5000)  # Update every 5 seconds
 
     def _init_ui(self):
         """Initialize UI"""
@@ -419,6 +419,12 @@ class WiFiPanel(QWidget):
         self.ip_edit.setEnabled(enabled)
         self.port_edit.setEnabled(enabled)
         self.test_btn.setEnabled(enabled)
+
+        # Stop WiFi status timer when connected (avoid lag during data streaming)
+        if enabled:
+            self.wifi_status_timer.start(5000)
+        else:
+            self.wifi_status_timer.stop()
 
     def get_connection_status(self) -> str:
         """Get connection status"""

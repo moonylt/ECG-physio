@@ -11,6 +11,15 @@ from dataclasses import dataclass
 from typing import List, Optional
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 
+# Windows startupinfo to hide console window
+if platform.system() == "Windows":
+    import subprocess
+    STARTUPINFO = subprocess.STARTUPINFO()
+    STARTUPINFO.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    STARTUPINFO.wShowWindow = subprocess.SW_HIDE
+else:
+    STARTUPINFO = None
+
 
 @dataclass
 class WiFiAPInfo:
@@ -89,13 +98,14 @@ class WiFiScanner:
     def _scan_windows(self) -> List[WiFiAPInfo]:
         """Scan WiFi APs on Windows using netsh command"""
         try:
-            # Run netsh wlan show networks mode=bssid
+            # Run netsh wlan show networks mode=bssid (hidden window)
             result = subprocess.run(
                 ['netsh', 'wlan', 'show', 'networks', 'mode=bssid'],
                 capture_output=True,
                 text=True,
                 encoding='gbk',  # Windows Chinese encoding
-                timeout=10
+                timeout=10,
+                startupinfo=STARTUPINFO
             )
             return self._parse_netsh_output(result.stdout)
         except subprocess.TimeoutExpired:
@@ -190,7 +200,8 @@ class WiFiScanner:
                 capture_output=True,
                 text=True,
                 encoding='gbk',
-                timeout=5
+                timeout=5,
+                startupinfo=STARTUPINFO
             )
             return self._parse_interface_output(result.stdout)
         except Exception:

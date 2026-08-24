@@ -123,7 +123,8 @@ class WaveformWidget(QWidget):
             return
 
         # 添加 4 个样本到缓冲区 (不是 10 个)
-        self.buffer.add_data(frame.samples)
+        # float32: 避免 pyqtgraph 对 ±400万原始计数做 int 运算时溢出告警
+        self.buffer.add_data(frame.samples.astype(np.float32))
 
         # 更新 Y 轴范围
         self._update_y_ranges()

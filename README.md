@@ -64,8 +64,7 @@ ECG-physio/
 ├── 1.HW/                           # Hardware Design Files
 │   ├── PHYSIO_PCB.jpg              # Main Board PCB Design
 │   ├── PNP_HEATER_PCB.jpg          # Heater PCB Design
-│   ├── SCH_Physio_*.pdf            # Schematic PDF
-│   └── Netlist_Physio_*.tel        # Netlist File
+│   └── (Schematics and netlists withheld for confidentiality)
 ├── 2.MATLAB/                       # MATLAB Algorithm Verification
 │   ├── ECG.m                       # ECG Signal Processing Script
 │   └── pan1985.pdf                 # Pan-Tompkins Algorithm Reference
@@ -75,7 +74,7 @@ ECG-physio/
 │   │       ├── Core/               # Core Code
 │   │       │   ├── Inc/            # Header Files
 │   │       │   └── Src/            # Source Files
-│   │       │       ├── ADS1294.c   # ADS1298R Driver
+│   │       │       ├── ADS1298R.c  # ADS1298R Driver
 │   │       │       ├── PID.c       # PID Temperature Control
 │   │       │       ├── MAX31856drv.c # Thermocouple Driver
 │   │       │       └── main.c      # Main Program
@@ -164,6 +163,7 @@ python main.py
 | [MATLAB Algorithm](2.MATLAB/README.md) | ECG processing algorithm verification |
 | [Python Console](4.Python%20console/V2/README.md) | Software usage guide |
 | [WiFi Test](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi functionality test |
+| [Flash Guide](3.FIRMWARE/FLASH_GUIDE.md) | Build & flash tutorial (STM32/ESP32/PC) |
 
 ---
 

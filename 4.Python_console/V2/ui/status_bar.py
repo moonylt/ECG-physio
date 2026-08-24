@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-状态栏组件
-显示系统状态、统计信息和生理参数
+Status bar widget.
+Shows system status, statistics and physiological parameters.
 """
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QFrame, QPushButton
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from typing import Optional
 
 
 class StatusBar(QWidget):
     """
-    状态栏组件
-    显示心率、呼吸率、采样率、连接状态等信息
+    Status bar: heart rate, breath rate, sampling rate, connection state.
     """
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # 状态变量（在 _init_ui 之前初始化）
+        # A QWidget subclass must opt in or the stylesheet background is not
+        # painted (white text on a light background would be unreadable)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+
+        # state variables (initialize before _init_ui)
         self.heart_rate = 0
         self.breath_rate = 0
         self.sampling_rate = 500
@@ -27,16 +30,16 @@ class StatusBar(QWidget):
         self.bytes_received = 0
         self.error_count = 0
 
-        # 创建 UI
+        # build the UI
         self._init_ui()
 
-        # 状态更新定时器
+        # status refresh timer
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._update_display)
-        self.update_timer.start(500)  # 500ms 刷新一次
+        self.update_timer.start(500)  # refresh every 500ms
     
     def _init_ui(self):
-        """Initialize UI - compact status bar"""
+        """Initialize UI - compact status bar."""
         self.setStyleSheet("""
             StatusBar {
                 background-color: #2d2d44;
@@ -44,8 +47,9 @@ class StatusBar(QWidget):
                 padding: 2px;
             }
             QLabel {
-                color: #ffffff;
-                padding: 1px 5px;
+                color: #e8eaf6;
+                padding: 1px 6px;
+                font-size: 13px;
             }
         """)
 
@@ -55,14 +59,14 @@ class StatusBar(QWidget):
 
         # Heart rate (compact)
         self.hr_label = QLabel("HR: --")
-        self.hr_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.hr_label.setStyleSheet("font-weight: bold; font-size: 13px;")
         layout.addWidget(self.hr_label)
 
         layout.addWidget(self._create_separator())
 
         # Breath rate (compact)
         self.br_label = QLabel("BR: --")
-        self.br_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.br_label.setStyleSheet("font-weight: bold; font-size: 13px;")
         layout.addWidget(self.br_label)
 
         layout.addWidget(self._create_separator())
@@ -70,6 +74,20 @@ class StatusBar(QWidget):
         # Sampling rate (compact)
         self.sr_label = QLabel(f"SPS: {self.sampling_rate}")
         layout.addWidget(self.sr_label)
+
+        layout.addWidget(self._create_separator())
+
+        # SpO2 (MSGID 0x22)
+        self.spo2_label = QLabel("SpO2: --")
+        self.spo2_label.setStyleSheet("color: #80deea; font-weight: bold; font-size: 13px;")
+        layout.addWidget(self.spo2_label)
+
+        layout.addWidget(self._create_separator())
+
+        # Temperatures (MSGID 0x25)
+        self.temp_label = QLabel("T: --")
+        self.temp_label.setStyleSheet("color: #80deea; font-weight: bold; font-size: 13px;")
+        layout.addWidget(self.temp_label)
 
         layout.addWidget(self._create_separator())
 
@@ -89,7 +107,7 @@ class StatusBar(QWidget):
         layout.addWidget(self.error_label)
     
     def _create_separator(self) -> QFrame:
-        """创建分隔线"""
+        """Create a separator line."""
         line = QFrame()
         line.setFrameShape(QFrame.VLine)
         line.setFixedWidth(1)
@@ -97,42 +115,69 @@ class StatusBar(QWidget):
         return line
     
     def set_heart_rate(self, bpm: float):
-        """Set heart rate"""
+        """Set heart rate."""
         self.heart_rate = bpm
         if bpm > 0:
             self.hr_label.setText(f"HR: {bpm:.0f}")
             if 60 <= bpm <= 100:
-                self.hr_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12px;")
+                self.hr_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 13px;")
             elif bpm < 50 or bpm > 120:
-                self.hr_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 12px;")
+                self.hr_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 13px;")
             else:
-                self.hr_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 12px;")
+                self.hr_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 13px;")
         else:
             self.hr_label.setText("HR: --")
-            self.hr_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+            self.hr_label.setStyleSheet("font-weight: bold; font-size: 13px;")
 
     def set_breath_rate(self, rpm: float):
-        """Set breath rate"""
+        """Set breath rate."""
         self.breath_rate = rpm
         if rpm > 0:
             self.br_label.setText(f"BR: {rpm:.1f}")
             if 12 <= rpm <= 20:
-                self.br_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12px;")
+                self.br_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 13px;")
             elif rpm < 10 or rpm > 30:
-                self.br_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 12px;")
+                self.br_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 13px;")
             else:
-                self.br_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 12px;")
+                self.br_label.setStyleSheet("color: #ff9800; font-weight: bold; font-size: 13px;")
         else:
             self.br_label.setText("BR: --")
-            self.br_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+            self.br_label.setStyleSheet("font-weight: bold; font-size: 13px;")
 
     def set_sampling_rate(self, rate: int):
-        """Set sampling rate"""
+        """Set sampling rate."""
         self.sampling_rate = rate
         self.sr_label.setText(f"SPS: {rate}")
 
+    def set_spo2(self, spo2: float, pulse_rate: int = 0):
+        """Set SpO2 (MSGID 0x22)."""
+        if spo2 > 0:
+            text = f"SpO2: {spo2:.0f}%"
+            if pulse_rate > 0:
+                text += f" ({pulse_rate})"
+            self.spo2_label.setText(text)
+            color = "#4CAF50" if spo2 >= 95 else ("#ff9800" if spo2 >= 90 else "#f44336")
+            self.spo2_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 13px;")
+        else:
+            self.spo2_label.setText("SpO2: --")
+            self.spo2_label.setStyleSheet("color: #80deea; font-weight: bold; font-size: 13px;")
+
+    def set_temperatures(self, t_skin: float = None, t_rect: float = None, t_heater: float = None):
+        """Set temperatures (MSGID 0x25)."""
+        parts = []
+        if t_skin is not None:
+            parts.append(f"sk {t_skin:.1f}")
+        if t_rect is not None:
+            parts.append(f"rc {t_rect:.1f}")
+        if t_heater is not None:
+            parts.append(f"ht {t_heater:.1f}")
+        if parts:
+            self.temp_label.setText("T: " + "/".join(parts) + " C")
+        else:
+            self.temp_label.setText("T: --")
+
     def set_connected(self, connected: bool):
-        """Set connection status"""
+        """Set connection status."""
         self.is_connected = connected
         if connected:
             self.status_indicator.setText("Online")
@@ -142,7 +187,7 @@ class StatusBar(QWidget):
             self.status_indicator.setStyleSheet("color: #9e9e9e;")
 
     def update_stats(self, frames: int, bytes_count: int, errors: int = 0):
-        """Update statistics"""
+        """Update statistics."""
         self.frames_received = frames
         self.bytes_received = bytes_count
         self.error_count = errors
@@ -162,12 +207,12 @@ class StatusBar(QWidget):
             self.error_label.setStyleSheet("color: #4CAF50;")
     
     def _update_display(self):
-        """定期更新显示"""
+        """Periodic display refresh."""
         # 可以在这里添加自动刷新逻辑
         pass
     
     def reset(self):
-        """重置状态栏"""
+        """Reset the status bar."""
         self.set_heart_rate(0)
         self.set_breath_rate(0)
         self.update_stats(0, 0, 0)

@@ -1,10 +1,9 @@
 /**
- * ECG WiFi Bridge - 主程序
+ * ECG WiFi Bridge - main program
  *
- * 功能：
- * - 创建 WiFi SoftAP 热点
- * - 启动 TCP Server
- * - 发送模拟 ECG 数据（测试模式）或转发 STM32 数据（实际模式）
+ * - Creates a WiFi SoftAP
+ * - Runs a TCP server
+ * - Sends simulated ECG data (test mode) or forwards STM32 data (real mode)
  */
 
 #include <string.h>
@@ -42,8 +41,8 @@ static const char *TAG = "ECG_BRIDGE";
 #define ECG_FRAME_RATE  CONFIG_ECG_FRAME_RATE
 #define ECG_UART_BAUD   CONFIG_ECG_UART_BAUD
 
-// ECG 数据帧格式（与上位机协议一致）
-// STX0(1B) + STX1(1B) + LEN_L(1B) + LEN_H(1B) + SRC(1B) + DST(1B) + SEQ(1B) + MSGID(1B) + DATA(48B) + CRC(1B) = 57 字节
+// ECG frame format (matches the console protocol)
+// STX0 + STX1 + LEN_L + LEN_H + SRC + DST + SEQ + MSGID + DATA(48B) + CRC = 57 bytes
 #define ECG_FRAME_SIZE      57
 #define ECG_STX0            0x55
 #define ECG_STX1            0xAA
@@ -64,7 +63,7 @@ static float ecg_phase[ECG_NUM_CHANNELS] = {0, 0, 0, 0};
 static uint16_t frame_counter = 0;
 
 /**
- * 计算 CRC8 校验
+ * Compute the CRC8 checksum
  */
 static uint8_t calculate_crc8(const uint8_t *data, size_t len)
 {
@@ -83,7 +82,7 @@ static uint8_t calculate_crc8(const uint8_t *data, size_t len)
 }
 
 /**
- * 生成模拟 ECG 样本值
+ * Generate a simulated ECG sample value
  * 不同通道生成不同波形便于观察：
  * CH0: 呼吸波形（低频 0.2Hz）
  * CH1: 标准 ECG 波形
@@ -96,8 +95,8 @@ static int32_t generate_ecg_sample(int channel, float phase)
 
     // CH0: 呼吸波形（低频正弦波）
     if (channel == 0) {
-        // 呼吸频率约 0.2Hz（每秒 12 次）
-        value = 0.5f * sinf(phase * 6.28f);  // 1Hz 正弦波作为呼吸
+        // respiration waveform
+        value = 0.5f * sinf(phase * 6.28f);
         // 添加一些小波动
         value += 0.1f * sinf(phase * 12.56f);
         // 缩放
@@ -120,13 +119,13 @@ static int32_t generate_ecg_sample(int channel, float phase)
         noise_level = 0.05f;       // 更多噪声
     }
 
-    // P 波
+    // P wave
     float p_phase = phase - 0.1f;
     if (p_phase > -0.1f && p_phase < 0.1f) {
         value += 0.15f * amplitude_scale * sinf(p_phase * 31.4f);
     }
 
-    // QRS 复合波
+    // QRS complex
     float qrs_phase = phase - 0.3f;
     if (qrs_phase > -0.05f && qrs_phase < 0.05f) {
         value += 1.0f * amplitude_scale * sinf(qrs_phase * 62.8f);
@@ -135,49 +134,49 @@ static int32_t generate_ecg_sample(int channel, float phase)
         value += 0.3f * amplitude_scale * sinf(qrs_phase * 157.0f);
     }
 
-    // T 波
+    // T wave
     float t_phase = phase - 0.5f;
     if (t_phase > -0.15f && t_phase < 0.15f) {
         value += 0.3f * amplitude_scale * sinf(t_phase * 20.9f);
     }
 
-    // 添加噪声
+    // add noise
     value += (float)(rand() % 100 - 50) / 1000.0f * (noise_level * 50);
 
-    // 缩放到 24 位范围 (±8388608)
+    // scale to 24-bit range (+/-8388608)
     int32_t sample = (int32_t)(value * 4000000);
 
     return sample;
 }
 
 /**
- * 构造一个 ECG 数据帧
+ * Build one ECG data frame
  * 帧格式：STX0(1B) + STX1(1B) + LEN_L(1B) + LEN_H(1B) + SRC(1B) + DST(1B) + SEQ(1B) + MSGID(1B) + DATA(48B) + CRC(1B) = 57 字节
  */
 static void build_ecg_frame(uint8_t *frame)
 {
     int idx = 0;
 
-    // 帧头
+    // frame header
     frame[idx++] = ECG_STX0;
     frame[idx++] = ECG_STX1;
 
-    // 数据长度 (48 字节)
+    // payload length (48 bytes)
     frame[idx++] = 48;          // LEN_L
     frame[idx++] = 0;           // LEN_H
 
-    // 源地址和目标地址
+    // source / destination addresses
     frame[idx++] = 0x01;        // SRC: ESP32
     frame[idx++] = 0x00;        // DST: PC
 
-    // 序列号
+    // sequence number
     frame[idx++] = frame_counter & 0xFF;
     frame_counter++;
 
-    // 消息类型
+    // message type
     frame[idx++] = ECG_MSG_ADS129X_DATA;
 
-    // 生成 4 个样本，每个样本 4 个通道 (共 48 字节)
+    // 4 samples x 4 channels per frame (48 bytes)
     for (int sample = 0; sample < ECG_SAMPLES_PER_FRAME; sample++) {
         for (int ch = 0; ch < ECG_NUM_CHANNELS; ch++) {
             // 更新相位
@@ -256,7 +255,7 @@ static void wifi_init_softap(void)
         },
     };
 
-    // 如果有密码，使用 WPA2
+    // use WPA2 when a password is configured
     if (strlen(ECG_PASSWORD) > 0) {
         wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
     }
@@ -342,13 +341,13 @@ static void tcp_server_task(void *pvParameters)
             continue;
         }
 
-        // 设置 keepalive
+        // keepalive
         setsockopt(client_socket, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(int));
         setsockopt(client_socket, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(int));
         setsockopt(client_socket, IPPROTO_TCP, TCP_KEEPINTVL, &keepinterval, sizeof(int));
         setsockopt(client_socket, IPPROTO_TCP, TCP_KEEPCNT, &keepcount, sizeof(int));
 
-        // 转换地址为字符串
+        // format the client address
         inet_ntoa_r(source_addr.sin_addr, addr_str, sizeof(addr_str) - 1);
         ESP_LOGI(TAG, "Client connected: %s", addr_str);
 
@@ -356,7 +355,7 @@ static void tcp_server_task(void *pvParameters)
 
         // 等待客户端断开
         while (client_connected) {
-            // 检查连接状态
+            // check connection state
             char dummy;
             int ret = recv(client_socket, &dummy, 1, MSG_PEEK | MSG_DONTWAIT);
             if (ret == 0 || (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK)) {
@@ -367,7 +366,7 @@ static void tcp_server_task(void *pvParameters)
             vTaskDelay(pdMS_TO_TICKS(100));
         }
 
-        // 关闭客户端 socket
+        // close the client socket
         if (client_socket >= 0) {
             close(client_socket);
             client_socket = -1;
@@ -391,10 +390,10 @@ static void ecg_sender_task(void *pvParameters)
             continue;
         }
 
-        // 构造数据帧
+        // build the frame
         build_ecg_frame(frame);
 
-        // 发送数据
+        // send
         int sent = send(client_socket, frame, ECG_FRAME_SIZE, 0);
         if (sent < 0) {
             ESP_LOGE(TAG, "Send failed: errno %d", errno);
@@ -402,20 +401,22 @@ static void ecg_sender_task(void *pvParameters)
             continue;
         }
 
-        // 帧率控制
+        // frame pacing
         vTaskDelay(pdMS_TO_TICKS(frame_interval_ms));
     }
 }
 
 /**
- * UART 接收任务（用于真实数据模式）
+ * UART receive task (real-data mode)
  */
+static uint8_t uart_buf[TCP_BUF_SIZE];   /* static: a task-local buffer once
+ * overflowed the 4KB task stack and corrupted the heap */
+
 static void uart_rx_task(void *pvParameters)
 {
-    uint8_t uart_buf[TCP_BUF_SIZE];
     int uart_num = UART_NUM_1;
 
-    // 配置 UART
+    // UART configuration
     uart_config_t uart_config = {
         .baud_rate = ECG_UART_BAUD,
         .data_bits = UART_DATA_8_BITS,
@@ -427,7 +428,11 @@ static void uart_rx_task(void *pvParameters)
 
     ESP_ERROR_CHECK(uart_driver_install(uart_num, TCP_BUF_SIZE * 2, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(uart_num, 4, 5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    // Pin mapping verified against the board netlist:
+    //   STM32 UART5_TX(PC12) -> ESP32 IO5  (WIFI_RXD2, R337)
+    //   STM32 UART5_RX(PD2)  <- ESP32 IO18 (WIFI_TXD2, R338)
+    // Backup link: STM32 UART8(PE0/PE1) <-> ESP32 IO19/IO22 (R339/R340)
+    ESP_ERROR_CHECK(uart_set_pin(uart_num, 18, 5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     ESP_LOGI(TAG, "UART initialized: %d baud", ECG_UART_BAUD);
 
@@ -437,10 +442,10 @@ static void uart_rx_task(void *pvParameters)
             continue;
         }
 
-        // 从 UART 读取数据
+        // read from UART
         int len = uart_read_bytes(uart_num, uart_buf, TCP_BUF_SIZE, pdMS_TO_TICKS(10));
         if (len > 0) {
-            // 直接转发到 TCP
+            // forward verbatim to TCP
             int sent = send(client_socket, uart_buf, len, 0);
             if (sent < 0) {
                 ESP_LOGE(TAG, "UART->TCP send failed");
@@ -460,7 +465,7 @@ void app_main(void)
     ESP_LOGI(TAG, "TCP Port: %d", ECG_TCP_PORT);
     ESP_LOGI(TAG, "Data Mode: %d", ECG_DATA_MODE);
 
-    // 初始化 NVS
+    // init NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_LOGW(TAG, "NVS partition need erase, erasing...");
@@ -470,33 +475,33 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     ESP_LOGI(TAG, "NVS initialized");
 
-    // 初始化 TCP/IP 协议栈
+    // init the TCP/IP stack
     ESP_LOGI(TAG, "Initializing TCP/IP stack...");
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_LOGI(TAG, "TCP/IP stack initialized");
 
-    // 创建默认事件循环
+    // create the default event loop
     ESP_LOGI(TAG, "Creating default event loop...");
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_LOGI(TAG, "Event loop created");
 
-    // 初始化 WiFi
+    // init WiFi
     ESP_LOGI(TAG, "Initializing WiFi...");
     wifi_init_softap();
     ESP_LOGI(TAG, "WiFi initialized");
 
-    // 启动 TCP Server 任务
+    // start the TCP server task
     xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
 
-    // 根据数据模式启动相应任务
+    // start the data task selected by the configured mode
     if (ECG_DATA_MODE == 0) {
-        // 模拟数据模式
+        // simulated data mode
         ESP_LOGI(TAG, "Running in SIMULATED DATA mode");
         xTaskCreate(ecg_sender_task, "ecg_sender", 4096, NULL, 5, NULL);
     } else {
-        // 真实数据模式（从 UART 接收）
+        // real-data mode (UART)
         ESP_LOGI(TAG, "Running in UART DATA mode");
-        xTaskCreate(uart_rx_task, "uart_rx", 4096, NULL, 5, NULL);
+        xTaskCreate(uart_rx_task, "uart_rx", 6144, NULL, 5, NULL);   /* big buffer moved out of the stack */
     }
 
     ESP_LOGI(TAG, "ECG WiFi Bridge ready!");

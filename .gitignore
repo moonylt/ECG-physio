@@ -1,0 +1,23 @@
+# AI 助手本地配置
+.claude/
+
+# 硬件保密文件：原理图和网表仅保留在本地，不进入仓库
+1.HW/SCH_*.pdf
+1.HW/Netlist_*.tel
+
+# ESP-IDF / clangd 缓存
+.cache/
+
+# 编译产物（STM32CubeIDE Release/Debug、ESP-IDF sdkconfig 备份）
+3.FIRMWARE/1.ST MCU/Physio/Release/
+3.FIRMWARE/1.ST MCU/Physio/Debug/
+3.FIRMWARE/1.ST MCU/Physio/build/
+sdkconfig.old
+
+# Python
+__pycache__/
+*.pyc
+
+# 测试与调参产物（不上传，仅本地保留）
+3.FIRMWARE/pid_tuning/
+4.Python_console/V2/tests/

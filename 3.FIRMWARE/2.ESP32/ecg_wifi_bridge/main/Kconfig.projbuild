@@ -28,7 +28,7 @@ menu "ECG WiFi Bridge Configuration"
 
     config ECG_DATA_MODE
         int "Data Mode"
-        default 0
+        default 1
         help
             0: Simulated ECG data (for testing)
             1: Real ECG data from STM32 via UART
@@ -42,7 +42,7 @@ menu "ECG WiFi Bridge Configuration"
 
     config ECG_UART_BAUD
         int "UART Baud Rate"
-        default 921600
+        default 819200
         help
             UART baud rate for STM32 communication
 

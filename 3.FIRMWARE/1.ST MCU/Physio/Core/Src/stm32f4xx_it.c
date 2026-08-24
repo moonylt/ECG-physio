@@ -22,14 +22,14 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ADS1294.h"
+#include "ADS1298R.h"
 #include "MAX31856drv.h"
+#include "physio_app.h"
 #include "spi.h"
 #include "usart.h"
 #include "adc.h"
 
 /* USER CODE END Includes */
-extern void SPI_Trans_To_US(uint8_t *buf, int Length);
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -48,32 +48,7 @@ extern void SPI_Trans_To_US(uint8_t *buf, int Length);
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 extern unsigned char readdata[27];
-extern unsigned char ecgdata[48];
-extern unsigned char rspdata[48];
-extern unsigned char senddata[118];
-extern uint8_t DMA_RECEIVE_OVER;
 extern float temp_setvalue0;
-extern float f_linearized_tc_temperature;
-
-
-static int recivedata_counter=0;
-static int recivedata_counter_temp=0;
-
-
-float temp_value0=0.0;
-unsigned char leadoff_final;
-unsigned char ecg_num=0;
-unsigned char rsp_num=0;
-uint8_t rxdata=0x00;
-
-union
-{
-	float float_data;
-	struct
-	{
-	unsigned char Bytes[4];
-	}byte_float;
-}u_float;
 
 /* USER CODE END PV */
 
@@ -253,96 +228,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 	{
 	  case ECG_RDY_Pin:
-//	  ECG data process
-	  ADS1294_Read_Data(readdata);//TOTAL 85us
-
-//	  ecgdata[0+3*recivedata_counter]=readdata[12];//12 III_LEAD
-//	  ecgdata[1+3*recivedata_counter]=readdata[13];//13 III_LEAD
-//	  ecgdata[2+3*recivedata_counter]=readdata[14];//14 III_LEAD
-
-
-	  ecgdata[0+3*recivedata_counter]=readdata[9];//9 II_LEAD
-	  ecgdata[1+3*recivedata_counter]=readdata[10];//10 II_LEAD
-	  ecgdata[2+3*recivedata_counter]=readdata[11];//11 II_LEAD
-
-//	  ecgdata[0+3*recivedata_counter]=readdata[6];//6 I_LEAD
-//	  ecgdata[1+3*recivedata_counter]=readdata[7];//7 I_LEAD
-//	  ecgdata[2+3*recivedata_counter]=readdata[8];//8 I_LEAD
-
-	  rspdata[0+3*recivedata_counter]=readdata[3];
-	  rspdata[1+3*recivedata_counter]=readdata[4];
-	  rspdata[2+3*recivedata_counter]=readdata[5];
-
-	  recivedata_counter=recivedata_counter+1;
-
-
-//	  HAL_UART_Transmit(&huart2, &readdata[9], 3,1);
-
-
-	  if(recivedata_counter==16)
-	  {
-//	  ADC data process
-		  adc1_conv();
-
-		  senddata[0]=0xaa;	//syns
-		  senddata[1]=0x55; //syns
-		  senddata[2]=0x04;	//CMD
-		  senddata[3]=0x00;//CMD_Length
-		  senddata[4]=112; //CMD_Length
-		  senddata[5]=0x01;//sample_rate
-		  senddata[6]=0x02;//sample_rate
-		  senddata[7]=1;//Publish_data.ECG_Flag=1;
-		  senddata[8]=48;//Publish_data.ECG_DataLength=50;
-		  for(ecg_num=0;ecg_num<48;ecg_num++)
-		  senddata[9+ecg_num]=ecgdata[ecg_num];
-		  //UART0_snd(&senddata[9],48);//ECG????
-		  senddata[57]=0;//Publish_data.R_Position_First=0;
-		  senddata[58]=0;//Publish_data.R_Position_Second=0;
-		  senddata[59]=1;//Publish_data.RSP_Flag=1;
-		  senddata[60]=48;//Publish_data.RSP_DataLength=49;
-		  for(rsp_num=0;rsp_num<48;rsp_num++)
-		  senddata[61+rsp_num]=rspdata[rsp_num];//Publish_data.RSP_Data
-		  senddata[109]=0;//Publish_data.H_Position_Rsp
-		  //温度上传间隔时间加大，避免刷新过快
-		  if(recivedata_counter_temp==20)
-		  senddata[110]=0x1;//Publish_data.Temptrue_Flag
-		  else
-		  senddata[110]=0;//Publish_data.Temptrue_Flag
-		  senddata[111]=0x4;//Publish_data.Temptrue_DataLength=4
-//		  if(temp_value0<0)
-//		  f_linearized_tc_temperature=60;// SET TEMP 60 MEANING NO PROBE INSERT
-		  u_float.float_data=f_linearized_tc_temperature;
-		  senddata[112]=u_float.byte_float.Bytes[0];//Publish_data.Temptrue_Data;
-		  senddata[113]=u_float.byte_float.Bytes[1];//Publish_data.Temptrue_Data;
-		  senddata[114]=u_float.byte_float.Bytes[2];//Publish_data.Temptrue_Data;
-		  senddata[115]=u_float.byte_float.Bytes[3];//Publish_data.Temptrue_Data;
-		  senddata[116]=leadoff_final;//Publish_data.connect status;
-		  senddata[117]=0x89;//Publish_data.Checksum
-
-		  SPI_Trans_To_US(senddata,118);
-
-		  recivedata_counter=0;
-	  }
-
-	  if(recivedata_counter_temp==20)
-	  {
-		  recivedata_counter_temp=0;
-		  maxim_31856_conversion_result_process();
-	  }
-	  else
-		  recivedata_counter_temp++;
-
-//	  recivedata_counter=0;
-//	  Temp data process---not frequently
-//	  maxim_31856_conversion_result_process();
+	  /* ADS1298R sample ready (500sps): read 27 bytes and hand them to the application layer
+	   * simulation mode (PHYSIO_SIM_MODE=1) produces no data path */
+	  ADS1298R_Read_Data(readdata);
+	  physio_app_ecg_from_isr(readdata);
 	  break;
 
-	  case SW_BT_Pin://BUTTON TO ADJUST TEMP_SETVALUE
+	  case ADC_RDY_TO_MCU_Pin:
+	  /* AFE4490 ADC ready: read LED1/LED2 values and hand them to the application layer */
+	  physio_app_spo2_from_isr();
+	  break;
+
+	  case SW_BT_Pin://button to adjust the temperature setpoint
 	  if(temp_setvalue0!=42)//38-42 LOOP
 		  temp_setvalue0++;
 	  else
 		  temp_setvalue0=38;
-
 
 	  default: break;
 
@@ -425,7 +326,7 @@ void HAL_SPI_TxRxCpltCallback( SPI_HandleTypeDef * hspi)
 
 //void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 //{
-//    // 采集完成标志位置1
+//    // acquisition-complete flag = 1
 //    DMA_RECEIVE_OVER = 1;
 //}
 

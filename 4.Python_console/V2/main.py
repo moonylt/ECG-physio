@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ECG Viewer - ADS1294R 调试工具
+ECG Viewer - ADS1298R 调试工具
 主程序入口
 
 使用方法:

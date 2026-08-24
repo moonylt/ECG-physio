@@ -92,9 +92,9 @@ Discarded input sections
  .text          0x00000000        0x0 ./Core/Src/main.o
  .data          0x00000000        0x0 ./Core/Src/main.o
  .bss           0x00000000        0x0 ./Core/Src/main.o
- .bss.ADS1294_Cache
+ .bss.ADS1298R_Cache
                 0x00000000       0x1a ./Core/Src/main.o
- .bss.ADS1294_recive_flag
+ .bss.ADS1298R_recive_flag
                 0x00000000        0x1 ./Core/Src/main.o
  .text          0x00000000        0x0 ./Core/Src/spi.o
  .data          0x00000000        0x0 ./Core/Src/spi.o

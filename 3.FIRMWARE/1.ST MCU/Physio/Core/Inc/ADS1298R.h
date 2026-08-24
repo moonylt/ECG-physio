@@ -1,18 +1,18 @@
-#ifndef __ADS1294_H
-#define __ADS1294_H	 
+#ifndef __ADS1298R_H
+#define __ADS1298R_H	 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //声明变量
 
-// unsigned char ADS1294_recive_flag=0;	//锟斤拷锟捷讹拷取锟斤拷杀锟街�
+// unsigned char ADS1298R_recive_flag=0;	//锟斤拷锟捷讹拷取锟斤拷杀锟街�
 
 
-//ADS1294R命令定义
+//ADS1298R命令定义
 //系统命令
 	#define WAKEUP	0X02	//从待机模式唤醒
 	#define STANDBY	0X04	//进入待机模式
-//	#define RESET	0X06	//复位ADS1294R
+//	#define RESET	0X06	//复位ADS1298R
 	#define START	0X08	//启动或转换
 	#define STOP	0X0A	//停止转换
 	//#define OFFSETCAL	0X1A	//通道偏移校准
@@ -26,7 +26,7 @@
 	#define RREG	0X20	//读取  001r rrrr(首字节) 000n nnnn(2字节)
 	#define WREG	0X40	//写入  010r rrrr(首字节) 000n nnnn(2字节)
 
-//ADS1294R内部寄存器地址定义
+//ADS1298R内部寄存器地址定义
 	#define ID					0	//ID控制寄存器
 	#define CONFIG1			1	//配置寄存器1
 	#define CONFIG2			2	//配置寄存器2
@@ -55,7 +55,7 @@
   #define WCT2			  25	//威尔逊中心端子控制寄存器
 
   //DeviceId
-  #define	DEVICE_ID_ADS1294R	0Xd0
+  #define	DEVICE_ID_ADS1298R	0Xd0
 	//CONFIG1
 	#define HR_LP_Mode  0
 	#define HR_HR_Mode  1
@@ -365,7 +365,7 @@
  	unsigned char  HR_LP:1;
  }REG_CONFIG;
    unsigned char  CONFIG1_Data;
- }ADS1294_CONFIG1;
+ }ADS1298R_CONFIG1;
  typedef union
  {
  struct
@@ -378,7 +378,7 @@
  	unsigned char  Reserved:2;
  }REG_CONFIG;
    unsigned char  CONFIG2_Data;
- }ADS1294_CONFIG2;
+ }ADS1298R_CONFIG2;
 
  typedef union
  {
@@ -394,7 +394,7 @@
  	unsigned char  PD_REFBUF:1;
  }REG_CONFIG;
    unsigned char  CONFIG3_Data;
- }ADS1294_CONFIG3;
+ }ADS1298R_CONFIG3;
 
  typedef union
  {
@@ -406,7 +406,7 @@
  	unsigned char  COMP_TH:3;
  }REG_CONFIG;
    unsigned char  LOFCTLREG_Data;
- }ADS1294_LOFCTLREG;
+ }ADS1298R_LOFCTLREG;
 
 
  typedef union
@@ -419,7 +419,7 @@
  	unsigned char  PD:1;
  }REG_CONFIG;
    unsigned char  CHSETREG_Data;
- }ADS1294_CHSETREG;
+ }ADS1298R_CHSETREG;
 
  typedef union
  {
@@ -435,7 +435,7 @@
  	unsigned char  RLD8P:1;
  }REG_CONFIG;
    unsigned char  RLD_SENSPREG_Data;
- }ADS1294_RLD_SENSPREG;
+ }ADS1298R_RLD_SENSPREG;
 
  typedef union
  {
@@ -451,7 +451,7 @@
  	unsigned char  RLD8N:1;
  }REG_CONFIG;
    unsigned char  RLD_SENSNREG_Data;
- }ADS1294_RLD_SENSNREG;
+ }ADS1298R_RLD_SENSNREG;
 
 
  typedef union
@@ -468,7 +468,7 @@
  	unsigned char  LOFF8P:1;
  }REG_CONFIG;
    unsigned char  LOFF_SENSPREG_Data;
- }ADS1294_LOFF_SENSPREG;
+ }ADS1298R_LOFF_SENSPREG;
 
  typedef union
  {
@@ -484,7 +484,7 @@
  	unsigned char  LOFF8N:1;
  }REG_CONFIG;
    unsigned char  LOFF_SENSNREG_Data;
- }ADS1294_LOFF_SENSNREG;
+ }ADS1298R_LOFF_SENSNREG;
 
 
  typedef union
@@ -501,7 +501,7 @@
  	unsigned char  LOFF_FLIP8:1;
  }REG_CONFIG;
    unsigned char  LOFF_FLIPREG_Data;
- }ADS1294_LOFF_FLIPREG;
+ }ADS1298R_LOFF_FLIPREG;
 
  typedef union
  {
@@ -517,7 +517,7 @@
  	unsigned char  IN8P_OFF:1;
  }REG_CONFIG;
    unsigned char  LOFF_STATPREG_Data;
- }ADS1294_LOFF_STATPREG;
+ }ADS1298R_LOFF_STATPREG;
 
 
  typedef union
@@ -534,7 +534,7 @@
  	unsigned char  IN8N_OFF:1;
  }REG_CONFIG;
    unsigned char  LOFF_STATNREG_Data;
- }ADS1294_LOFF_STATNREG;
+ }ADS1298R_LOFF_STATNREG;
 
  typedef union
  {
@@ -545,7 +545,7 @@
 
  }REG_CONFIG;
    unsigned char  GPIOREG_Data;
- }ADS1294_GPIOREG;
+ }ADS1298R_GPIOREG;
 
  typedef union
  {
@@ -557,7 +557,7 @@
  	unsigned char  Reserved:3;
  }REG_CONFIG;
    unsigned char  PACEREG_Data;
- }ADS1294_PACEREG;
+ }ADS1298R_PACEREG;
 
 
  typedef union
@@ -571,7 +571,7 @@
  	unsigned char  RESP_DEMOD_EN1:1;
  }REG_CONFIG;
    unsigned char  RESPREG_Data;
- }ADS1294_RESPREG;
+ }ADS1298R_RESPREG;
 
 
  typedef union
@@ -586,7 +586,7 @@
  	unsigned char  RESP_FREQ:3;
  }REG_CONFIG;
    unsigned char  CONFIG4_Data;
- }ADS1294_CONFIG4;
+ }ADS1298R_CONFIG4;
 
  typedef union
  {
@@ -600,7 +600,7 @@
  	unsigned char  aVF_CH6:1;
  }REG_CONFIG;
    unsigned char  WCT1REG_Data;
- }ADS1294_WCT1REG;
+ }ADS1298R_WCT1REG;
 
  typedef union
  {
@@ -612,30 +612,30 @@
  	unsigned char  PD_WCTC:1;
  }REG_CONFIG;
    unsigned char  WCT2REG_Data;
- }ADS1294_WCT2REG;
+ }ADS1298R_WCT2REG;
 
 
 
 
 
-void ADS1294_Init(void); //初始化ADS1294引脚
-void ADS1294_PowerOnInit(void);//上电初始化
-void ADS1294_Send_CMD(unsigned char data);//发送命令
-void ADS1294_WR_REGS(unsigned char reg,unsigned char len,unsigned char *data);//读写多个寄存器
-void ADS1294_Read_Data(unsigned char *data);//读9字节数据
-void ADS1294_SET_REGBUFF(void);//设置寄存器数组
-void ADS1294_WRITE_REGBUFF(void);//将寄存器数组写入寄存器
+void ADS1298R_Init(void); //初始化ADS1298R引脚
+void ADS1298R_PowerOnInit(void);//上电初始化
+void ADS1298R_Send_CMD(unsigned char data);//发送命令
+void ADS1298R_WR_REGS(unsigned char reg,unsigned char len,unsigned char *data);//读写多个寄存器
+void ADS1298R_Read_Data(unsigned char *data);//读9字节数据
+void ADS1298R_SET_REGBUFF(void);//设置寄存器数组
+void ADS1298R_WRITE_REGBUFF(void);//将寄存器数组写入寄存器
 
-void ADS1294_Noise_Test(void);
-void ADS1294_Single_Test(void);//设置通道1内部1mV测试信号
-void ADS1294_Single_Read(void);//设置正常信号采集模式
-void Set_ADS1294_Collect(unsigned char mode);//设置数据采集方式
+void ADS1298R_Noise_Test(void);
+void ADS1298R_Single_Test(void);//设置通道1内部1mV测试信号
+void ADS1298R_Single_Read(void);//设置正常信号采集模式
+void Set_ADS1298R_Collect(unsigned char mode);//设置数据采集方式
 
 #endif
 
 
 //手册及论坛资料：
-//关于CLK您是使用内部时钟还是使用外部时钟？如果使用内部时钟，可以将其接地。如果使用外部时钟，可以接有源晶振或者MCU的时钟输出引脚给ADS1294 提供时钟。
+//关于CLK您是使用内部时钟还是使用外部时钟？如果使用内部时钟，可以将其接地。如果使用外部时钟，可以接有源晶振或者MCU的时钟输出引脚给ADS1298R 提供时钟。
 //使用内部晶振的话，寄存器CONFIG2的bit3 如果配置为1的话，那么CLK有输出，频率即为内部时钟产生的频率，如果配置为0的话，那么CLK输出disable
 //SCLK 即为SPI的频率，它的大小datasheet已经给出，当2.7 V ≤ DVDD ≤ 3.6 V，周期tSCLK（min）=50ns。 当1.7 V ≤ DVDD ≤ 2 V时，tSCLK（min）=66.6ns
 

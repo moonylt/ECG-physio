@@ -17,7 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <ADS1294.h>
+#include <ADS1298R.h>
 #include "main.h"
 #include "adc.h"
 #include "crc.h"
@@ -33,9 +33,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ADS1294.h"
+#include "ADS1298R.h"
 #include "MAX31856drv.h"
 #include "PID.h"
+#include "physio_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,11 +57,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-unsigned char readdata[27];
-unsigned char ecgdata[48];
-unsigned char rspdata[48];
-unsigned char senddata[118];
-extern float  f_linearized_tc_temperature;
+unsigned char readdata[27];   /* ADS1298R raw sample frame, filled by the EXTI0 ISR */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,7 +79,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  unsigned char readData[2];
 
   /* USER CODE END 1 */
 
@@ -127,17 +123,16 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //TMP117
   TMP_I2C_Init();
+#if !PHYSIO_SIM_MODE
   //ADS1298R
-  ADS1294_Init();//actually ADS1298R,just name
+  ADS1298R_Init();
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
   //MAX31256
   maxim_31856_init();
-  maxim_start_conversion(Automatic_Conversion);  //使能转换
-  //ADC
-//  HAL_ADCEx_Calibration_Start(&hadc1);
-//  //PWM---MOVE TO TIM.h
-//  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);//ADS1298R_CLK_2.048M
-//  HAL_TIM_PWM_Start(&htim8,TIM_CHANNEL_1);//AFE4490_CLK_8.197M
+  maxim_start_conversion(Automatic_Conversion);  //start conversion
+#endif
+  //application layer: UART5 -> ESP32; real mode initializes AFE4490/EXTI1
+  physio_app_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -145,14 +140,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-//	TMP_I2C_Read(TMP117_1, 0X00, readData,  2);//read T Thermocouple cold temp
-
-	TMP_I2C_Read(TMP117_2, 0X00, readData,  2);//read PNP AL-PCB Temp
-	HAL_Delay(2000);
-	pid_temp_process(TMP_data_process(readData));//AL-PCB TEMP CONTROL、
-//	pid_temp_process(f_linearized_tc_temperature);//MOUSE TEMP CONTROL
-
-//	HAL_UART_Transmit(&huart2, senddata, 3,1);
+	//non-blocking polling: sim/real data packing and TX, temperature acquisition and PID control (2s period)
+	physio_app_poll();
 
     /* USER CODE BEGIN 3 */
   }

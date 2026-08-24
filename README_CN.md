@@ -64,8 +64,7 @@ ECG-physio/
 ├── 1.HW/                           # 硬件设计文件
 │   ├── PHYSIO_PCB.jpg              # 主板 PCB 设计
 │   ├── PNP_HEATER_PCB.jpg          # 加热板 PCB 设计
-│   ├── SCH_Physio_*.pdf            # 原理图 PDF
-│   └── Netlist_Physio_*.tel        # 网表文件
+│   └ (原理图/网表因保密要求不公开，仅提供 PCB 图片)
 ├── 2.MATLAB/                       # MATLAB 算法验证
 │   ├── ECG.m                       # ECG 信号处理脚本
 │   └── pan1985.pdf                 # Pan-Tompkins 算法参考
@@ -75,7 +74,7 @@ ECG-physio/
 │   │       ├── Core/               # 核心代码
 │   │       │   ├── Inc/            # 头文件
 │   │       │   └── Src/            # 源文件
-│   │       │       ├── ADS1294.c   # ADS1298R 驱动
+│   │       │       ├── ADS1298R.c  # ADS1298R 驱动
 │   │       │       ├── PID.c       # PID 温控算法
 │   │       │       ├── MAX31856drv.c # 热电偶驱动
 │   │       │       └── main.c      # 主程序
@@ -164,6 +163,7 @@ python main.py
 | [MATLAB 算法](2.MATLAB/README.md) | ECG 处理算法验证 |
 | [Python 控制台](4.Python%20console/V2/README.md) | 软件使用说明 |
 | [WiFi 测试](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi 功能测试 |
+| [烧录教程](3.FIRMWARE/FLASH_GUIDE.md) | 编译烧录联调全流程（STM32/ESP32/上位机） |
 
 ---
 

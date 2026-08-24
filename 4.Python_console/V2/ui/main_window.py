@@ -5,6 +5,7 @@
 """
 
 import os
+import numpy as np
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, 
                              QMessageBox, QFileDialog, QSplitter)
 from PyQt5.QtCore import QTimer, Qt
@@ -15,7 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from comms.serial_manager import SerialManager
 from comms.wifi_manager import WiFiManager
-from comms.protocol_parser import ProtocolParser, ECGFrame
+from comms.protocol_parser import (ProtocolParser, ECGFrame, TempFrame,
+                                   SpO2ResultFrame, DeviceStatusFrame)
 from data.circular_buffer import CircularBuffer
 from data.data_saver import DataSaver, ScreenshotSaver
 from signal_processing.heart_rate import HeartRateDetector
@@ -26,6 +28,7 @@ from ui.serial_panel import SerialPanel
 from ui.wifi_panel import WiFiPanel
 from ui.waveform_widget import WaveformWidget
 from ui.fft_widget import FFTWidget
+from ui.temp_widget import TempWidget
 from ui.status_bar import StatusBar, ControlPanel
 
 
@@ -72,7 +75,7 @@ class MainWindow(QMainWindow):
         self.process_timer.start(50)  # 20 Hz 处理频率
 
         # 窗口状态
-        self.setWindowTitle("ECG Viewer - ADS1294R 调试工具 (支持 WiFi)")
+        self.setWindowTitle("ECG Viewer - ADS1298R 调试工具 (支持 WiFi)")
         self.resize(1400, 900)
     
     def _init_ui(self):
@@ -120,11 +123,15 @@ class MainWindow(QMainWindow):
         self.fft_widget = FFTWidget(sampling_rate=500)
         splitter.addWidget(self.fft_widget)
 
+        # 温度历史曲线
+        self.temp_widget = TempWidget()
+
         # Set splitter ratio (80% waveform, 20% FFT)
         splitter.setStretchFactor(0, 4)
         splitter.setStretchFactor(1, 1)
 
         main_layout.addWidget(splitter)
+        main_layout.addWidget(self.temp_widget)
 
         # Status bar (compact)
         self.status_bar = StatusBar()
@@ -173,18 +180,37 @@ class MainWindow(QMainWindow):
             self._process_frame(frame)
             self.frames_count += 1
     
-    def _process_frame(self, frame: ECGFrame):
+    def _process_frame(self, frame):
         """
-        处理单帧数据
+        处理单帧数据，按帧类型分发
 
         Args:
-            frame: ECG 数据帧
+            frame: 协议帧对象（ECGFrame/SpO2Frame/IBPFrame/TempFrame 等，
+                   定义见 comms/protocol_parser.py 与 3.FIRMWARE/PROTOCOL.md）
+        """
+        if isinstance(frame, ECGFrame):
+            self._process_ecg_frame(frame)
+        elif isinstance(frame, TempFrame):
+            self.status_bar.set_temperatures(frame.t_skin, frame.t_rect, frame.t_heater)
+            self.temp_widget.add_temp(frame.t_heater, frame.t_rect, frame.t_skin)
+        elif isinstance(frame, SpO2ResultFrame):
+            self.status_bar.set_spo2(frame.spo2, frame.pulse_rate)
+        elif isinstance(frame, DeviceStatusFrame):
+            acc = frame.accessory_list()
+            print(f"[Device] accessory 在线: {acc if acc else '无'}, "
+                  f"FW v{frame.fw_version >> 4}.{frame.fw_version & 0xF}, "
+                  f"error=0x{frame.error_code:02X}")
+        # PPG/IBP/导联脱落帧: 波形 UI 扩展暂缓，解析层已支持
+
+    def _process_ecg_frame(self, frame: ECGFrame):
+        """
+        处理 ECG 波形帧 (MSGID 0x20)
         """
         if self.is_paused:
             return
 
         # 获取样本数据
-        samples = frame.samples.copy()  # shape: (4, 4)
+        samples = frame.samples.copy().astype(np.float32)  # shape: (4, 4)
         
         # 应用数字滤波
         if self.is_filter_enabled:
@@ -305,7 +331,7 @@ class MainWindow(QMainWindow):
                     filename=os.path.basename(filename),
                     sampling_rate=self.waveform_widget.sampling_rate,
                     metadata={
-                        'Device': 'ADS1294R',
+                        'Device': 'ADS1298R',
                         'Channels': 4,
                         'Software': 'ECG Viewer'
                     }
@@ -375,7 +401,7 @@ class MainWindow(QMainWindow):
                     filename=os.path.basename(filename),
                     sampling_rate=self.waveform_widget.sampling_rate,
                     metadata={
-                        'Device': 'ADS1294R',
+                        'Device': 'ADS1298R',
                         'Software': 'ECG Viewer'
                     }
                 )

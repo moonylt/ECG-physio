@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-ECG Viewer - ADS1298R 调试工具
-主程序入口
+ECG Viewer - ADS1298R debugging tool
+Main entry point
 
-使用方法:
-1. 正常模式：python main.py
-2. 测试模式：python main.py --test
+Usage:
+1. Normal mode: python main.py
+2. Test mode: python main.py --test
 """
 
 import sys
@@ -14,7 +14,7 @@ import io
 import traceback
 import time
 
-# 设置标准输出编码（仅在控制台模式有效）
+# Set stdout encoding (effective in console mode only)
 if sys.stdout:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
@@ -22,7 +22,7 @@ print("=" * 50)
 print("ECG Viewer Starting...")
 print("=" * 50)
 
-# 检查是否启用测试模式
+# Check whether test mode is enabled
 TEST_MODE = '--test' in sys.argv
 
 try:
@@ -54,16 +54,16 @@ try:
     # Create main window
     window = MainWindow()
 
-    # 获取主屏幕几何信息
+    # Get primary screen geometry
     screen = app.primaryScreen().availableGeometry()
     
-    # 计算居中位置
+    # Compute centered window position
     window_width = 1400
     window_height = 900
     x = (screen.width() - window_width) // 2
     y = (screen.height() - window_height) // 2
     
-    # 确保窗口在可见区域内
+    # Keep the window within the visible screen area
     x = max(0, min(x, screen.width() - window_width))
     y = max(0, min(y, screen.height() - window_height))
     
@@ -82,7 +82,7 @@ try:
     print("Screen Size:", screen.width(), "x", screen.height())
     print("=" * 50)
     
-    # 如果是测试模式，启动内部测试
+    # If in test mode, start the internal test
     if TEST_MODE:
         print("\n测试模式：启动内部 ECG 数据注入...")
         print("观察波形显示，按 Ctrl+C 停止测试\n")

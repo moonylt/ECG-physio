@@ -138,7 +138,7 @@ void physio_app_ecg_from_isr(const uint8_t ads_raw[27])
 {
 #if !PHYSIO_SIM_MODE
     /* ADS1298R 27-byte frame: [0..2]status [3..5]CH1 resp [6..8]CH2 lead-I
-     * [9..11]CH3 lead-II [12..14]CH4 lead-III *
+     * [9..11]CH3 lead-II [12..14]CH4 lead-III */
     uint8_t *p = &ecg_pending[ecg_sample_cnt * 12];
     pack_s24(p + 0,  phy_s24_to_i32(&ads_raw[3]));    /* CH0 respiration     */
     pack_s24(p + 3,  phy_s24_to_i32(&ads_raw[6]));    /* CH1 lead I   */

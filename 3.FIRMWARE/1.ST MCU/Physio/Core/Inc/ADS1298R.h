@@ -3,56 +3,56 @@
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-//声明变量
+//Variable declarations
 
-// unsigned char ADS1298R_recive_flag=0;	//锟斤拷锟捷讹拷取锟斤拷杀锟街�
+// unsigned char ADS1298R_recive_flag=0;	// receive-complete flag
 
 
-//ADS1298R命令定义
-//系统命令
-	#define WAKEUP	0X02	//从待机模式唤醒
-	#define STANDBY	0X04	//进入待机模式
-//	#define RESET	0X06	//复位ADS1298R
-	#define START	0X08	//启动或转换
-	#define STOP	0X0A	//停止转换
-	//#define OFFSETCAL	0X1A	//通道偏移校准
+//ADS1298R command definitions
+//System commands
+	#define WAKEUP	0X02	//Wake up from standby mode
+	#define STANDBY	0X04	//Enter standby mode
+//	#define RESET	0X06	//Reset ADS1298R
+	#define START	0X08	//Start conversions
+	#define STOP	0X0A	//Stop conversions
+	//#define OFFSETCAL	0X1A	//Channel offset calibration
 
-//数据读取命令
-	#define RDATAC	0X10	//启用连续的数据读取模式,默认使用此模式
-	#define SDATAC	0X11	//停止连续的数据读取模式
-	#define RDATA		0X12	//通过命令读取数据;支持多种读回。
-//寄存器读取命令
-	//r rrrr=要读、写的寄存器首地址	 //	n nnnn=要读写的寄存器数量
-	#define RREG	0X20	//读取  001r rrrr(首字节) 000n nnnn(2字节)
-	#define WREG	0X40	//写入  010r rrrr(首字节) 000n nnnn(2字节)
+//Data read commands
+	#define RDATAC	0X10	//Enable continuous data read mode; this mode is used by default
+	#define SDATAC	0X11	//Stop continuous data read mode
+	#define RDATA		0X12	//Read data by command; supports multiple readbacks
+//Register access commands
+	//r rrrr=first register address to read/write	 //	n nnnn=number of registers to read/write
+	#define RREG	0X20	//Read  001r rrrr (first byte) 000n nnnn (second byte)
+	#define WREG	0X40	//Write  010r rrrr (first byte) 000n nnnn (second byte)
 
-//ADS1298R内部寄存器地址定义
-	#define ID					0	//ID控制寄存器
-	#define CONFIG1			1	//配置寄存器1
-	#define CONFIG2			2	//配置寄存器2
-	#define CONFIG3			3	//配置寄存器2
-	#define LOFF				4	//导联脱落控制寄存器
-	#define CH1SET			5	//通道1设置寄存器
-	#define CH2SET			6	//通道2设置寄存器
-	#define CH3SET			7	//通道3设置寄存器
-	#define CH4SET			8	//通道4设置寄存器
-	#define CH5SET			9	//通道5设置寄存器
-	#define CH6SET			10	//通道6设置寄存器
-	#define CH7SET			11	//通道7设置寄存器
-	#define CH8SET			12	//通道8设置寄存器
-	#define RLD_SENSP		13	//右腿驱动选择寄存器
-	#define RLD_SENSN		14	//右腿驱动选择寄存器
-	#define LOFF_SENSP	15	//正信号导联脱落检测寄存器
-	#define LOFF_SENSN	16	//负信号导联脱落检测寄存器
-	#define LOFF_FLIP		17	//导联脱落翻转寄存器
-	#define LOFF_STATP	18	//导联脱落正信号状态寄存器
-	#define LOFF_STATN	19	//导联脱落负信号状态寄存器
-	#define	GPIO				20  //GPIO控制寄存器
-	#define	PACE				21  //起搏信号检测寄存器
-	#define	RESP				22	//呼吸控制寄存器
-	#define CONFIG4			23	//配置寄存器4
-	#define WCT1			  24	//威尔逊中心端子控制寄存器
-  #define WCT2			  25	//威尔逊中心端子控制寄存器
+//ADS1298R internal register address definitions
+	#define ID					0	//ID control register
+	#define CONFIG1			1	//Configuration register 1
+	#define CONFIG2			2	//Configuration register 2
+	#define CONFIG3			3	//Configuration register 3
+	#define LOFF				4	//Lead-off control register
+	#define CH1SET			5	//Channel 1 setup register
+	#define CH2SET			6	//Channel 2 setup register
+	#define CH3SET			7	//Channel 3 setup register
+	#define CH4SET			8	//Channel 4 setup register
+	#define CH5SET			9	//Channel 5 setup register
+	#define CH6SET			10	//Channel 6 setup register
+	#define CH7SET			11	//Channel 7 setup register
+	#define CH8SET			12	//Channel 8 setup register
+	#define RLD_SENSP		13	//Right-leg drive selection register
+	#define RLD_SENSN		14	//Right-leg drive selection register
+	#define LOFF_SENSP	15	//Positive lead-off detection register
+	#define LOFF_SENSN	16	//Negative lead-off detection register
+	#define LOFF_FLIP		17	//Lead-off flip register
+	#define LOFF_STATP	18	//Positive lead-off status register
+	#define LOFF_STATN	19	//Negative lead-off status register
+	#define	GPIO				20  //GPIO control register
+	#define	PACE				21  //Pace detection register
+	#define	RESP				22	//Respiration control register
+	#define CONFIG4			23	//Configuration register 4
+	#define WCT1			  24	//Wilson central terminal control register
+  #define WCT2			  25	//Wilson central terminal control register
 
   //DeviceId
   #define	DEVICE_ID_ADS1298R	0Xd0
@@ -63,21 +63,21 @@
 	#define DAISY_DISENABLE  1// Multiple readback mode
 	#define CLK_DISEN_OUTPUT 0// OSCILLATOR clock output disabled
 	#define CLK_EN_OUTPUT 1// OSCILLATOR clock output enabled
-	#define	DATA_RATE_HR_32kSPS	0	//采样率
-	#define	DATA_RATE_LP_16kSPS	0	//采样率
-	#define	DATA_RATE_HR_16kSPS	1	//采样率
-	#define	DATA_RATE_LP_8kSPS	1	//采样率
-	#define	DATA_RATE_HR_8kSPS	2	//采样率
-	#define	DATA_RATE_LP_4kSPS	2	//采样率
-	#define	DATA_RATE_HR_4kSPS	3	//采样率
-	#define	DATA_RATE_LP_2kSPS	3	//采样率
-	#define	DATA_RATE_HR_2kSPS	4	//采样率
-	#define	DATA_RATE_LP_1kSPS	4	//采样率
-	#define	DATA_RATE_HR_1kSPS	5	//采样率
-	#define	DATA_RATE_LP_500SPS	5	//采样率
-	#define	DATA_RATE_HR_500SPS	6	//采样率
-	#define	DATA_RATE_LP_250SPS	6	//采样率
-	#define	DATA_RATE_Reserved	7	//采样率
+	#define	DATA_RATE_HR_32kSPS	0	//Sample rate
+	#define	DATA_RATE_LP_16kSPS	0	//Sample rate
+	#define	DATA_RATE_HR_16kSPS	1	//Sample rate
+	#define	DATA_RATE_LP_8kSPS	1	//Sample rate
+	#define	DATA_RATE_HR_8kSPS	2	//Sample rate
+	#define	DATA_RATE_LP_4kSPS	2	//Sample rate
+	#define	DATA_RATE_HR_4kSPS	3	//Sample rate
+	#define	DATA_RATE_LP_2kSPS	3	//Sample rate
+	#define	DATA_RATE_HR_2kSPS	4	//Sample rate
+	#define	DATA_RATE_LP_1kSPS	4	//Sample rate
+	#define	DATA_RATE_HR_1kSPS	5	//Sample rate
+	#define	DATA_RATE_LP_500SPS	5	//Sample rate
+	#define	DATA_RATE_HR_500SPS	6	//Sample rate
+	#define	DATA_RATE_LP_250SPS	6	//Sample rate
+	#define	DATA_RATE_Reserved	7	//Sample rate
 	//CONFIG2
 	#define	WCT_CHOP_Varies     0	//Chopping frequency varies
 	#define	WCT_CHOP_Fixed      1	//Chopping frequency constant at fMOD / 16
@@ -618,36 +618,36 @@
 
 
 
-void ADS1298R_Init(void); //初始化ADS1298R引脚
-void ADS1298R_PowerOnInit(void);//上电初始化
-void ADS1298R_Send_CMD(unsigned char data);//发送命令
-void ADS1298R_WR_REGS(unsigned char reg,unsigned char len,unsigned char *data);//读写多个寄存器
-void ADS1298R_Read_Data(unsigned char *data);//读9字节数据
-void ADS1298R_SET_REGBUFF(void);//设置寄存器数组
-void ADS1298R_WRITE_REGBUFF(void);//将寄存器数组写入寄存器
+void ADS1298R_Init(void); //Initialize the ADS1298R pins
+void ADS1298R_PowerOnInit(void);//Power-on initialization
+void ADS1298R_Send_CMD(unsigned char data);//Send a command
+void ADS1298R_WR_REGS(unsigned char reg,unsigned char len,unsigned char *data);//Read/write multiple registers
+void ADS1298R_Read_Data(unsigned char *data);//Read 9 bytes of data
+void ADS1298R_SET_REGBUFF(void);//Set up the register buffer
+void ADS1298R_WRITE_REGBUFF(void);//Write the register buffer into the registers
 
 void ADS1298R_Noise_Test(void);
-void ADS1298R_Single_Test(void);//设置通道1内部1mV测试信号
-void ADS1298R_Single_Read(void);//设置正常信号采集模式
-void Set_ADS1298R_Collect(unsigned char mode);//设置数据采集方式
+void ADS1298R_Single_Test(void);//Set channel 1 to the internal 1 mV test signal
+void ADS1298R_Single_Read(void);//Set normal signal acquisition mode
+void Set_ADS1298R_Collect(unsigned char mode);//Set the data acquisition mode
 
 #endif
 
 
-//手册及论坛资料：
-//关于CLK您是使用内部时钟还是使用外部时钟？如果使用内部时钟，可以将其接地。如果使用外部时钟，可以接有源晶振或者MCU的时钟输出引脚给ADS1298R 提供时钟。
-//使用内部晶振的话，寄存器CONFIG2的bit3 如果配置为1的话，那么CLK有输出，频率即为内部时钟产生的频率，如果配置为0的话，那么CLK输出disable
-//SCLK 即为SPI的频率，它的大小datasheet已经给出，当2.7 V ≤ DVDD ≤ 3.6 V，周期tSCLK（min）=50ns。 当1.7 V ≤ DVDD ≤ 2 V时，tSCLK（min）=66.6ns
+//Datasheet and forum notes:
+//For CLK: internal or external clock? With the internal clock, tie the pin to ground. With an external clock, drive it from an active crystal or an MCU clock output pin.
+//With the internal oscillator, CONFIG2 bit3 = 1 enables the CLK output at the internal clock frequency; bit3 = 0 disables the CLK output
+//SCLK is the SPI clock rate; per the datasheet: 2.7 V ≤ DVDD ≤ 3.6 V → tSCLK(min) = 50 ns; 1.7 V ≤ DVDD ≤ 2 V → tSCLK(min) = 66.6 ns
 
-//1. 在连续读模式下，不能读写寄存器。在连续读模式下，首先要发命令停止 SDATAC 。然后才能发送其他命令。
-//2. 手册里面这样描述，1292 接收多字节命令时，解析一个字节需要 7.2us。因此你发送多字节命令时，两个字节之间的间隔至少要到8us
-//测试流程
-//	设置 CLKSEL =1 	使用内部时钟，
-//	设置 PWDN/RESET = 1  等待1秒 开机复位和等待起振
-//	发送SDATAC命令  设置寄存器
-//	发送WREG CONFIG2 A0h	使用内部参考电压，
-//	设置START = 1		激活转换
-//	发送RDATAC命令	将设备恢复到RDATAC模式
-//	捕获数据并检查噪音
-//	捕获数据并测试信号
+//1. Registers cannot be accessed in continuous read mode; send SDATAC first to leave that mode before issuing other commands.
+//2. Per the datasheet, the 1292 takes 7.2 us to parse each byte of a multi-byte command; leave at least 8 us between bytes
+//Test procedure
+//	Set CLKSEL = 1 	use the internal clock
+//	Set PWDN/RESET = 1  wait 1 s for power-on reset and oscillator startup
+//	Send the SDATAC command  then configure the registers
+//	Send WREG CONFIG2 A0h	use the internal reference voltage
+//	Set START = 1		to start conversions
+//	Send the RDATAC command	to return the device to RDATAC mode
+//	Capture data and check the noise
+//	Capture data and test the signal
 

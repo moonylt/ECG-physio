@@ -4,43 +4,43 @@
 #define PID_H	 
 //#include "sys.h"
 
-/*PID�ṹ�����*/
+/* PID struct definition */
 typedef struct
 {
-	float  SetPoint; 	//�趨Ŀ��
-	double  SumError;	//����ۼ� 
+	float  SetPoint; 	// Desired target
+	double  SumError;	// Accumulated error
 		
-	float  Proportion;  //�������� 
-	float  Integral;    //���ֳ���
-	float  Derivative;  //΢�ֳ���
+	float  Proportion;  // Proportional coefficient
+	float  Integral;    // Integral coefficient
+	float  Derivative;  // Derivative coefficient
 
-	float  LastError;   //��һ�����
-	float  PrevError;   //ǰһ�����
+	float  LastError;   // Previous error
+	float  PrevError;   // Error before previous
 }PIDTypdDef;
 
 extern PIDTypdDef RSencer,LSencer;
 //float temp_setvalue0=38;//default test
 
 void pid_temp_process(float temp_value);
-/*��ʼ��RSencer�ṹ�����*/
+/* Initialize RSencer struct */
 void PID_RSencer_Init(void);
-/*��ʼ��LSencer�ṹ�����*/
+/* Initialize LSencer struct */
 void PID_LSencer_Init(void);
-/*����RSencer����ֵ*/
+/* Set RSencer setpoint */
 void PID_RSencer_SetPoint(float setpoint);
-/*����LSencer����ֵ*/
+/* Set LSencer setpoint */
 void PID_LSencer_SetPoint(float setpoint);
-/*����RSencer��PID����*/
+/* Set RSencer PID parameters */
 void PID_RSencer_SetPID(float P,float I,float D);
-	/*����LSencer��PID����*/
+	/* Set LSencer PID parameters */
 void PID_LSencer_SetPID(float P,float I,float D);
-/*RSencerλ��ʽPID����*/
-//�������Ϊ��ǰ��������õ�ֵ
-//����ֵ��PID���������ֵ
+/* RSencer positional PID */
+// Input: currently measured value
+// Output: PID-computed result
 int PID_RSencer_Calculate(float CurValue);
-/*LSencerλ��ʽPID����*/
-//�������Ϊ��ǰ��������õ�ֵ
-//����ֵ��PID���������ֵ
+/* LSencer positional PID */
+// Input: currently measured value
+// Output: PID-computed result
 float PID_LSencer_Calculate(float CurValue);
 		 				    
 #endif

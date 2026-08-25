@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-"""通信模块"""
+"""Communication modules"""

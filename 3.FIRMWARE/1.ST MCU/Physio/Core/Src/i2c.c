@@ -240,7 +240,7 @@ float TMP_data_process(unsigned char *Data)
 {
 	uint32_t temperature_value_dig;
 //	float temperature_value;//AL PCB TEMP
-	temperature_value_dig=(Data[0]<<8|Data[1]);      //构�?�温度数�?
+	temperature_value_dig=(Data[0]<<8|Data[1]);      // Assemble temperature data
 	temperature_value_al=temperature_value_dig*0.0078125;//convert to float and cal resolution
     return temperature_value_al;
 

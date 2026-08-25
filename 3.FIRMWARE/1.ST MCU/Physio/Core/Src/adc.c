@@ -23,7 +23,7 @@
 /* USER CODE BEGIN 0 */
 uint32_t AD_DMA[4]={0};
 double volt_MONI_value[4]={0};
-/**DMA采集完成标志 */
+/** DMA transfer complete flag */
 uint8_t DMA_RECEIVE_OVER = 0;
 
 /* USER CODE END 0 */
@@ -294,7 +294,7 @@ void adc1_conv(void)
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
 //	HAL_ADC_Stop_DMA(&hadc1);
-    // 采集完成标志位置1
+    // Set conversion-complete flag to 1
 //	  while(DMA_RECEIVE_OVER==0);
 
 	  volt_MONI_value[0]=((double)AD_DMA[0]*1000)/4096*3.3;

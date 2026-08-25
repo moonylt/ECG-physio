@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-CRC8 校验工具
-与 MCU 固件使用的 CRC 算法保持一致
-CRC8 多项式：0x07
+CRC8 checksum utility
+Kept consistent with the CRC algorithm used by the MCU firmware
+CRC8 polynomial: 0x07
 """
 
-# CRC8 查找表 (多项式 0x07)
+# CRC8 lookup table (polynomial 0x07)
 CRC8_TABLE = [
     0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
     0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
@@ -44,13 +44,13 @@ CRC8_TABLE = [
 
 def crc8(data: bytes) -> int:
     """
-    计算 CRC8 校验值
-    
+    Compute the CRC8 checksum
+
     Args:
-        data: 输入数据
-        
+        data: input data
+
     Returns:
-        CRC8 校验值 (0-255)
+        CRC8 checksum value (0-255)
     """
     crc = 0x00
     for byte in data:
@@ -60,20 +60,20 @@ def crc8(data: bytes) -> int:
 
 def verify(frame: bytes) -> bool:
     """
-    验证数据帧的 CRC 校验
-    
+    Verify the CRC of a data frame
+
     Args:
-        frame: 完整数据帧 (包含 CRC 字节)
-        
+        frame: complete data frame (including the CRC byte)
+
     Returns:
-        True 如果校验通过，False 否则
+        True if verification passes, False otherwise
     """
     if len(frame) < 2:
         return False
     
-    # 最后一字节是 CRC
+    # The last byte is the CRC
     received_crc = frame[-1]
-    # 计算前面数据的 CRC
+    # Compute the CRC of the preceding bytes
     calculated_crc = crc8(frame[:-1])
     
     return received_crc == calculated_crc
@@ -81,13 +81,13 @@ def verify(frame: bytes) -> bool:
 
 def append(data: bytes) -> bytes:
     """
-    计算 CRC 并附加到数据末尾
-    
+    Compute the CRC and append it to the data
+
     Args:
-        data: 原始数据
-        
+        data: raw data
+
     Returns:
-        原始数据 + CRC 字节
+        raw data + CRC byte
     """
     crc = crc8(data)
     return data + bytes([crc])

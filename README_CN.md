@@ -204,7 +204,7 @@ python main.py
 
 ## 4 通道模拟 ECG 显示 (WiFi 模式)
 
-![4 通道模拟 ECG](4.Python%20console/V2/4CH-SIM.png)
+![4 通道模拟 ECG](4.Python_console/V2/4CH-SIM.png)
 
 **通道说明：**
 | 通道 | 波形类型 | 说明 |

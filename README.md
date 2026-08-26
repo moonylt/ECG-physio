@@ -204,7 +204,7 @@ For issues, please submit an Issue or contact the project maintainer.
 
 ## 4-Channel Simulated ECG Display (WiFi Mode)
 
-![4-Channel Simulated ECG](4.Python%20console/V2/4CH-SIM.png)
+![4-Channel Simulated ECG](4.Python_console/V2/4CH-SIM.png)
 
 **Channel Descriptions:**
 | Channel | Waveform Type | Description |

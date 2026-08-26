@@ -38,10 +38,10 @@ python flash.py openocd    # 备用：ST-Link/OpenOCD 路径
 **验证运行**（可选）：设备应每秒发出约 150 帧数据，可用 J-Link 读计数器：
 
 ```bash
-printf 'mem32 0x200006D4 1\nmem8 0x200001D0 1\nSleep 1000\nmem32 0x200006D4 1\nmem8 0x200001D0 1\nqc\n' | "C:\Program Files (x86)\SEGGER\JLink_V630j\JLink.exe" -device STM32F429ZG -if SWD -speed 4000 -autoconnect 1
+printf 'mem32 0x200007A0 1\nmem8 0x2000028A 1\nSleep 1000\nmem32 0x200007A0 1\nmem8 0x2000028A 1\nqc\n' | "C:\Program Files (x86)\SEGGER\JLink_V630j\JLink.exe" -device STM32F429ZG -if SWD -speed 4000 -autoconnect 1
 ```
 
-两个 `uwTick`（0x200006D4）读数差约 1000，`phy_tx_seq`（0x200001D0）差约 150 即正常。
+两个 `uwTick`（0x200007A0）读数差约 1000，`phy_tx_seq`（0x2000028A）差约 150 即正常。
 
 > 注意：这两个 RAM 地址是符号地址，**每次重编译都可能漂移**。地址失配时用
 > `F:/stm32-tools/gcc/bin/arm-none-eabi-nm build/Physio.elf | grep -E "uwTick|phy_tx_seq"`

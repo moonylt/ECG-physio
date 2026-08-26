@@ -80,7 +80,7 @@ ECG-physio/
 │   │       │       └── main.c      # 主程序
 │   │       └── Drivers/            # STM32 HAL 库
 │   └── 2.ESP32/                    # ESP32 WiFi 模块固件
-├── 4.Python console/               # Python 控制台软件
+├── 4.Python_console/               # Python 控制台软件
 │   ├── V1/                         # 版本 1 (基础版)
 │   │   ├── main.py                 # 主程序
 │   │   └── phsio.py                # 信号处理
@@ -148,7 +148,7 @@ ECG-physio/
 
 ### Python 控制台
 ```bash
-cd "4.Python console/V2"
+cd "4.Python_console/V2"
 pip install -r requirements.txt
 python main.py
 ```
@@ -161,8 +161,7 @@ python main.py
 |------|------|
 | [硬件设计](1.HW/README.md) | PCB 和原理图说明 |
 | [MATLAB 算法](2.MATLAB/README.md) | ECG 处理算法验证 |
-| [Python 控制台](4.Python%20console/V2/README.md) | 软件使用说明 |
-| [WiFi 测试](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi 功能测试 |
+| [Python 控制台](4.Python_console/V2/README.md) | 软件使用说明 |
 | [烧录教程](3.FIRMWARE/FLASH_GUIDE.md) | 编译烧录联调全流程（STM32/ESP32/上位机） |
 
 ---

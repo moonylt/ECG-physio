@@ -80,7 +80,7 @@ ECG-physio/
 │   │       │       └ main.c        # Main Program
 │   │       └ Drivers/              # STM32 HAL Library
 │   └ 2.ESP32/                      # ESP32 WiFi Module Firmware
-├── 4.Python console/               # Python Console Software
+├── 4.Python_console/               # Python Console Software
 │   ├── V1/                         # Version 1 (Basic)
 │   │   ├── main.py                 # Main Program
 │   │   └ phsio.py                  # Signal Processing
@@ -148,7 +148,7 @@ ECG-physio/
 
 ### Python Console
 ```bash
-cd "4.Python console/V2"
+cd "4.Python_console/V2"
 pip install -r requirements.txt
 python main.py
 ```
@@ -161,8 +161,7 @@ python main.py
 |----------|-------------|
 | [Hardware Design](1.HW/README.md) | PCB and schematic documentation |
 | [MATLAB Algorithm](2.MATLAB/README.md) | ECG processing algorithm verification |
-| [Python Console](4.Python%20console/V2/README.md) | Software usage guide |
-| [WiFi Test](4.Python%20console/V2/tests/README_WIFI_TEST.md) | WiFi functionality test |
+| [Python Console](4.Python_console/V2/README.md) | Software usage guide |
 | [Flash Guide](3.FIRMWARE/FLASH_GUIDE.md) | Build & flash tutorial (STM32/ESP32/PC) |
 
 ---

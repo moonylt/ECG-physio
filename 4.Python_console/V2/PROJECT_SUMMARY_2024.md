@@ -250,7 +250,6 @@ pyinstaller==5.13.0
 
 - **项目位置**: F:\FE\ecg_viewer
 - **文档**: USER_GUIDE.md, README.md
-- **测试指南**: TEST_GUIDE.md, QUICK_TEST.md
 
 ---
 

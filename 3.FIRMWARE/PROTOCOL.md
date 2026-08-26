@@ -87,5 +87,5 @@ STM32 旧 118 字节帧（`0xAA 0x55` + TLV + 固定校验 0x89，经 SPI5→USM
 ## 5. 参考实现
 
 - 帧常量与打包/解析（C）：`3.FIRMWARE/protocol.h`
-- Python 解析：`4.Python console/V2/comms/protocol_parser.py`
+- Python 解析：`4.Python_console/V2/comms/protocol_parser.py`
 - ESP32 模拟发送（0x20）：`3.FIRMWARE/2.ESP32/ecg_wifi_bridge/main/ecg_bridge_main.c`

@@ -43,6 +43,10 @@ printf 'mem32 0x200006D4 1\nmem8 0x200001D0 1\nSleep 1000\nmem32 0x200006D4 1\nm
 
 两个 `uwTick`（0x200006D4）读数差约 1000，`phy_tx_seq`（0x200001D0）差约 150 即正常。
 
+> 注意：这两个 RAM 地址是符号地址，**每次重编译都可能漂移**。地址失配时用
+> `F:/stm32-tools/gcc/bin/arm-none-eabi-nm build/Physio.elf | grep -E "uwTick|phy_tx_seq"`
+> 重新定位后再读。
+
 > 注意：编译脚本零依赖（不需要 make/CubeIDE），工具链在 `F:\stm32-tools`。
 > 如果以后改了代码，直接重跑 `python build.py && python flash.py` 即可。
 

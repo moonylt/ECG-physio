@@ -47,6 +47,7 @@ static void pack_f32(uint8_t *p, float f)
 /* ------------------------------------------------------------------ */
 /* Simulated waveform generator (128-point sine LUT, no libm)                                */
 /* ------------------------------------------------------------------ */
+#if PHYSIO_SIM_MODE
 static const float sin_lut[128] = {
 0.00000f, 0.04907f, 0.09802f, 0.14673f, 0.19509f, 0.24298f, 0.29028f, 0.33689f,
 0.38268f, 0.42756f, 0.47140f, 0.51410f, 0.55557f, 0.59570f, 0.63439f, 0.67156f,
@@ -117,6 +118,7 @@ static int32_t sim_ppg_ch(int ch)               /* CH0=IR, CH1=RED */
     float v = 0.55f + 0.45f * lut_sinf(sim_ppg_phase);
     return (int32_t)(v * amp * 1500000);
 }
+#endif /* PHYSIO_SIM_MODE */
 
 /* ------------------------------------------------------------------ */
 /* Real mode: ISR buffers                                                   */

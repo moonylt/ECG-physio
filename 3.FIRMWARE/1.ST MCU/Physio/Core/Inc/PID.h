@@ -1,46 +1,28 @@
 /*
+PID regulation library.
+2026-08: rewritten for auto-tuning - all parameters are runtime-writable
+globals (g_ prefix) so they can be adjusted via J-Link RAM access without
+rebuilding. Structure: feedforward (FF) + PI + derivative-on-measurement (D)
++ actuator slew-rate limit.
 */
 #ifndef PID_H
-#define PID_H	 
-//#include "sys.h"
+#define PID_H
 
-/* PID struct definition */
-typedef struct
-{
-	float  SetPoint; 	// Desired target
-	double  SumError;	// Accumulated error
-		
-	float  Proportion;  // Proportional coefficient
-	float  Integral;    // Integral coefficient
-	float  Derivative;  // Derivative coefficient
+#include <stdint.h>
 
-	float  LastError;   // Previous error
-	float  PrevError;   // Error before previous
-}PIDTypdDef;
-
-extern PIDTypdDef RSencer,LSencer;
-//float temp_setvalue0=38;//default test
+/* Target temperature, degC. May be changed at runtime (J-Link or ISR test hook) */
+extern float temp_setvalue0;
 
 void pid_temp_process(float temp_value);
-/* Initialize RSencer struct */
-void PID_RSencer_Init(void);
-/* Initialize LSencer struct */
-void PID_LSencer_Init(void);
-/* Set RSencer setpoint */
-void PID_RSencer_SetPoint(float setpoint);
-/* Set LSencer setpoint */
-void PID_LSencer_SetPoint(float setpoint);
-/* Set RSencer PID parameters */
-void PID_RSencer_SetPID(float P,float I,float D);
-	/* Set LSencer PID parameters */
-void PID_LSencer_SetPID(float P,float I,float D);
-/* RSencer positional PID */
-// Input: currently measured value
-// Output: PID-computed result
-int PID_RSencer_Calculate(float CurValue);
-/* LSencer positional PID */
-// Input: currently measured value
-// Output: PID-computed result
-float PID_LSencer_Calculate(float CurValue);
-		 				    
+
+/* Runtime-writable tuning parameters (see PID.c for meanings) */
+extern volatile float   g_ff;
+extern volatile float   g_kp;
+extern volatile float   g_ki;
+extern volatile float   g_kd;
+extern volatile float   g_amb;
+extern volatile uint8_t g_slew;
+extern volatile uint8_t g_preheat;
+extern volatile uint8_t g_enable;
+
 #endif

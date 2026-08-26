@@ -8,15 +8,10 @@ rebuilding. Structure: feedforward (FF) + PI + derivative-on-measurement (D)
 #include "PID.h"
 #include "dac.h"
 
-PIDTypdDef RSencer,LSencer;
-
 float temp_setvalue0=38;//default test
-float temp_error=3.5;
-float temp_error0=1.5;
 float pid_recall=0;
 int temp=0X50;
 int F_Start=1;
-int pid_count=0;
 
 /* ---- Auto-tuning parameters (written at runtime via J-Link) ---- */
 volatile float   g_ff      = 4.8f;   /* feedforward: DAC counts per degC */
@@ -33,96 +28,6 @@ static float pid_integ  = 0.0f;
 static float pid_last_t = 0.0f;
 static float pid_dac_f  = 0.0f;
 
-/* Initialize RSencer struct */
-void PID_RSencer_Init(void)
-{
-    RSencer.LastError  = 0;
-    RSencer.PrevError  = 0;
-		RSencer.Proportion = 0;
-    RSencer.Integral   = 0;
-    RSencer.Derivative = 0;
-    RSencer.SetPoint   = 0;
-		RSencer.SumError   = 0;
-}
-
-/* Initialize LSencer struct */
-void PID_LSencer_Init(void)
-{
-    LSencer.LastError  = 0;
-    LSencer.PrevError  = 0;
-		LSencer.Proportion = 0;
-    RSencer.Integral   = 0;
-    LSencer.Derivative = 0;
-    LSencer.SetPoint   = 0;
-		LSencer.SumError   = 0;
-}
-
-/* Set RSencer setpoint */
-void PID_RSencer_SetPoint(float setpoint)
-{
-		RSencer.SetPoint = setpoint;
-}
-
-/* Set LSencer setpoint */
-void PID_LSencer_SetPoint(float setpoint)
-{
-		LSencer.SetPoint = setpoint;
-}
-
-/* Set RSencer PID parameters */
-void PID_RSencer_SetPID(float P,float I,float D)
-{
-		RSencer.Proportion = P;
-    RSencer.Integral   = I;
-    RSencer.Derivative = D;
-}
-
-/* Set LSencer PID parameters */
-void PID_LSencer_SetPID(float P,float I,float D)
-{
-		LSencer.Proportion = P;
-		LSencer.Integral   = I;
-    LSencer.Derivative = D;
-}
-
-/* RSencer positional PID */
-int PID_RSencer_Calculate(float CurValue)
-{
-	float  iError,dError;
-
-	iError = RSencer.SetPoint - CurValue;
-	RSencer.SumError += iError;
-	if(RSencer.SumError > 1500.0)
-			RSencer.SumError = 1500.0;
-	else if(RSencer.SumError < -1500.0)
-			RSencer.SumError = -1500.0;
-	dError = iError - RSencer.LastError;
-	RSencer.LastError = iError;
-
-	return(int)(RSencer.Proportion * iError
-          	+ RSencer.Integral   * RSencer.SumError
-          	+ RSencer.Derivative * dError);
-}
-
-/* LSencer positional PID */
-float PID_LSencer_Calculate(float CurValue)
-{
-	float  iError,dError;
-
-	iError = LSencer.SetPoint - CurValue;
-	LSencer.SumError += iError;
-	if(LSencer.SumError > 1500.0)
-			LSencer.SumError = 1500.0;
-	else if(LSencer.SumError < -1500.0)
-			LSencer.SumError = -1500.0;
-	dError = iError - LSencer.LastError;
-	LSencer.LastError = iError;
-
-	return(float)(LSencer.Proportion * iError
-          	+ LSencer.Integral   * LSencer.SumError
-            + LSencer.Derivative * dError);
-}
-
 static float clampf(float v, float lo, float hi)
 {
 	return (v < lo) ? lo : (v > hi) ? hi : v;
@@ -132,7 +37,6 @@ void pid_temp_process(float temp_value)
 {
 	float err, u, d_t, ff;
 
-	PID_LSencer_SetPoint(temp_setvalue0);
 	err = temp_setvalue0 - temp_value;
 	pid_recall = err;                      /* for external observation */
 

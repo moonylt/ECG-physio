@@ -264,7 +264,6 @@ void maxim_clear_fault_status(void)
 //-------------------------------------------------------------------------/
 void maxim_31856_conversion_result_process(void)
 {
-	uint8_t tc_ov;
     maxim_31856_read_nregisters(0x0A, uch_reg,6);  //Read 6 bytes of data starting from address 0x0A
 
     uch_cjth=uch_reg[0];uch_cjtl=uch_reg[1];                //Assign the read results to the corresponding register variables

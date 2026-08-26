@@ -21,3 +21,8 @@ __pycache__/
 # 测试与调参产物（不上传，仅本地保留）
 3.FIRMWARE/pid_tuning/
 4.Python_console/V2/tests/
+
+# 本地保留的测试类文档（不上传）
+4.Python_console/V2/QUICK_TEST.md
+4.Python_console/V2/TEST_GUIDE.md
+4.Python_console/V2/run_test.bat

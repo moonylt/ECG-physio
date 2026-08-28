@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <errno.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -451,6 +452,15 @@ static void uart_rx_task(void *pvParameters)
                 ESP_LOGE(TAG, "UART->TCP send failed");
                 client_connected = false;
             }
+        }
+
+        // downlink: TCP -> UART (PC commands, e.g. set temp target, forwarded to STM32)
+        int rlen = recv(client_socket, uart_buf, TCP_BUF_SIZE, MSG_DONTWAIT);
+        if (rlen > 0) {
+            uart_write_bytes(uart_num, (const char *)uart_buf, rlen);
+        } else if (rlen < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            ESP_LOGE(TAG, "TCP->UART recv failed: errno %d", errno);
+            client_connected = false;
         }
     }
 }

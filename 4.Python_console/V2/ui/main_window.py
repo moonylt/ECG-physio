@@ -137,6 +137,8 @@ class MainWindow(QMainWindow):
         self.status_bar = StatusBar()
         self.status_bar.setMaximumHeight(25)
         main_layout.addWidget(self.status_bar)
+        # 状态栏接入 TCP 客户端以启用下行命令（0xA1 目标温度等）
+        self.status_bar.attach_tcp_client(self.wifi_manager.tcp_client)
     
     def _connect_signals(self):
         """连接信号"""

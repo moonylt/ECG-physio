@@ -44,7 +44,7 @@ ESP32 透传 STM32 数据时**不改写 SRC/DST/SEQ**，仅做字节转发。
 |-------|------|-----------|------|
 | 0x20 | ADS129X_DATA（ECG/呼吸） | 48 | 4 样本 × 4 通道 × 3B。CH0=呼吸阻抗，CH1~CH3=ECG 导联。24bit 有符号大端 |
 | 0x21 | SPO2_PPG_DATA（血氧 PPG） | 24 | 4 样本 × 2 通道 × 3B。CH0=IR，CH1=RED。24bit 有符号大端 |
-| 0x22 | SPO2_RESULT（血氧结果） | 8 | SpO2 u16（%×10）、脉率 u16（bpm）、状态 u8、保留 u8 |
+| 0x22 | SPO2_RESULT（血氧结果） | 8 | SpO2 u16（%×10）、脉率 u16（bpm）、状态 u8、保留 u8。**当前固件不发送此帧**：原始 PPG（0x21）直接上传，SpO2 算法由上位机计算 |
 | 0x23 | IBP_DATA（有创血压波形） | 24 | 4 样本 × 2 通道 × 3B。CH0=P1，CH1=P2。24bit 有符号大端 |
 | 0x24 | NIBP_RESULT（无创血压结果） | 8 | 收缩压/舒张压/平均压 u16（mmHg×10）、状态 u8、保留 u8 |
 | 0x25 | TEMP_DATA（温度遥测） | 17 | 4 × f32（体表/肛温/加热板/冷结）+ 状态位 u8 |
@@ -62,7 +62,7 @@ ESP32 透传 STM32 数据时**不改写 SRC/DST/SEQ**，仅做字节转发。
 | 0xF0 | DEVICE_STATUS | 设备→PC | 4 | accessory 掩码 u16（见下）+ 固件版本 u8 + 错误码 u8 |
 | 0xA0 | SET_GAIN | PC→设备 | 2 | 通道号 u8 + 增益码 u8 |
 | 0xA1 | SET_TEMP_TARGET | PC→设备 | 4 | 目标温度 f32 |
-| 0xA2 | START_ACQ / STOP_ACQ | PC→设备 | 1 | 0x01=启动，0x00=停止，bit4~7 选择 accessory 组 |
+| 0xA2 | START_ACQ / STOP_ACQ | PC→设备 | 1 | 0x01=启动，0x00=停止，bit4~7 选择 accessory 组。当前实现：bit0 控制波形流（0x20/0x21）启停，温度遥测与 PID 恒温不受影响 |
 
 **DEVICE_STATUS accessory 掩码（u16）**：
 

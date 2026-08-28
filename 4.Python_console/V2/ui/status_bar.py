@@ -29,6 +29,7 @@ class StatusBar(QWidget):
         self.frames_received = 0
         self.bytes_received = 0
         self.error_count = 0
+        self.tcp_client = None   # injected via attach_tcp_client for downlink commands
 
         # build the UI
         self._init_ui()
@@ -91,6 +92,24 @@ class StatusBar(QWidget):
 
         layout.addWidget(self._create_separator())
 
+        # Heater setpoint control (downlink 0xA1)
+        from PyQt5.QtWidgets import QDoubleSpinBox
+        self.target_spin = QDoubleSpinBox()
+        self.target_spin.setRange(20.0, 60.0)
+        self.target_spin.setDecimals(1)
+        self.target_spin.setSingleStep(0.5)
+        self.target_spin.setValue(38.0)
+        self.target_spin.setStyleSheet("color: #ffb74d; font-size: 13px; background: transparent;")
+        self.target_spin.setFixedWidth(64)
+        self.target_btn = QPushButton("Set")
+        self.target_btn.setFixedHeight(22)
+        self.target_btn.clicked.connect(self._on_set_target)
+        layout.addWidget(QLabel("Set:"))
+        layout.addWidget(self.target_spin)
+        layout.addWidget(self.target_btn)
+
+        layout.addWidget(self._create_separator())
+
         # Connection status
         self.status_indicator = QLabel("Offline")
         self.status_indicator.setStyleSheet("color: #9e9e9e;")
@@ -113,6 +132,15 @@ class StatusBar(QWidget):
         line.setFixedWidth(1)
         line.setStyleSheet("background-color: #3d3d5c;")
         return line
+
+    def _on_set_target(self):
+        """Set 按钮：下发 0xA1 目标温度（tcp_client 引用由 main_window 注入）"""
+        if self.tcp_client is not None:
+            self.tcp_client.send_set_temp_target(float(self.target_spin.value()))
+
+    def attach_tcp_client(self, tcp_client):
+        """注入 TCP 客户端以启用下行命令"""
+        self.tcp_client = tcp_client
     
     def set_heart_rate(self, bpm: float):
         """Set heart rate."""

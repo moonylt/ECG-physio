@@ -162,6 +162,30 @@ class TCPClient(QObject):
             return self.worker.write(data)
         return False
 
+    # ---- 下行命令（协议 v2：PC → 设备） ----
+    _tx_seq = 0
+
+    def _send_cmd(self, msgid: int, payload: bytes) -> bool:
+        """按协议 v2 组帧并下发命令帧（SRC=PC, DST=STM32）"""
+        from utils.crc8 import crc8
+        TCPClient._tx_seq = (TCPClient._tx_seq + 1) & 0xFF
+        frame = bytes([0x55, 0xAA, len(payload) & 0xFF, (len(payload) >> 8) & 0xFF,
+                       0x00, 0x02, TCPClient._tx_seq, msgid]) + payload
+        return self.write(frame + bytes([crc8(frame)]))
+
+    def send_set_temp_target(self, target: float) -> bool:
+        """0xA1 设定目标温度（℃，20~60）"""
+        import struct as _s
+        return self._send_cmd(0xA1, _s.pack('<f', target))
+
+    def send_set_gain(self, channel: int, code: int) -> bool:
+        """0xA0 设定 ECG 通道增益（code 0..5 → ×6/12/24/48/96/192）"""
+        return self._send_cmd(0xA0, bytes([channel & 0xFF, code & 0xFF]))
+
+    def send_acq_ctrl(self, running: bool) -> bool:
+        """0xA2 启动/停止波形流（温度遥测与恒温不受影响）"""
+        return self._send_cmd(0xA2, bytes([0x01 if running else 0x00]))
+
     def _on_connected(self):
         """连接成功回调"""
         self.is_connected = True

@@ -11,6 +11,7 @@
 #include "MAX31856drv.h"
 #include "PID.h"
 #include "i2c.h"
+#include "ADS1298R.h"
 
 extern float f_linearized_tc_temperature;   /* MAX31856drv.c */
 
@@ -27,6 +28,69 @@ static void physio_send(uint8_t msgid, const uint8_t *data, uint16_t len)
     uint32_t n = phy_build_frame(phy_txbuf, PHY_ADDR_STM32, PHY_ADDR_PC,
                                  phy_tx_seq++, msgid, data, len);
     HAL_UART_Transmit(&huart5, phy_txbuf, n, 20);
+}
+
+/* ------------------------------------------------------------------ */
+/* UART5 RX: downlink commands from the PC (0xA0/0xA1/0xA2)           */
+/* ------------------------------------------------------------------ */
+#define RX_CAP  72   /* 8B header + max 56B payload + 1B CRC */
+
+static volatile uint8_t acq_on = 1;      /* 0xA2 gate for waveform streaming */
+
+static uint8_t  rx_buf[RX_CAP];
+static uint16_t rx_idx = 0;
+static uint16_t rx_len = 0;
+
+static void physio_cmd_handle(uint8_t msgid, const uint8_t *d, uint16_t len)
+{
+    switch (msgid) {
+    case PHY_MSG_SET_GAIN:                 /* channel u8 + gain code u8 (0..5) */
+        if (len == 2 && d[0] < PHY_ECG_CHANNELS && d[1] < 6) {
+#if !PHYSIO_SIM_MODE
+            /* CHnSET GAIN bits [5:3], PD=0 MUX=normal; CH1SET..CH4SET = 0x05..0x08 */
+            uint8_t val = (uint8_t)((d[1] & 0x07) << 3);
+            ADS1298R_WR_REGS(0x05 + d[0], 1, &val);
+#else
+            (void)d;                        /* gains applied PC-side in SIM mode */
+#endif
+        }
+        break;
+    case PHY_MSG_SET_TEMP_TARGET:          /* target temperature f32, LE */
+        if (len == 4) {
+            float t;
+            memcpy(&t, d, 4);
+            if (t >= 20.0f && t <= 60.0f)
+                temp_setvalue0 = t;
+        }
+        break;
+    case PHY_MSG_ACQ_CTRL:                 /* 0x01=start, 0x00=stop waveform streaming */
+        if (len >= 1)
+            acq_on = (d[0] & 0x01) ? 1 : 0;
+        break;
+    default:
+        break;
+    }
+}
+
+static void physio_rx_byte(uint8_t b)
+{
+    if (rx_idx >= RX_CAP) { rx_idx = 0; }
+    rx_buf[rx_idx++] = b;
+
+    if (rx_idx == 1 && b != PHY_STX0) rx_idx = 0;
+    else if (rx_idx == 2 && b != PHY_STX1) rx_idx = (b == PHY_STX0) ? 1 : 0;
+    else if (rx_idx == 4) {
+        rx_len = (uint16_t)(rx_buf[2] | (rx_buf[3] << 8));
+        if (rx_len > RX_CAP - 9) rx_idx = 0;   /* implausible length: resync */
+    }
+    else if (rx_idx == 8) {
+        if (rx_buf[5] != PHY_ADDR_STM32) rx_idx = 0;  /* not addressed to us */
+    }
+    else if (rx_idx == 8 + rx_len + 1) {
+        if (phy_crc8(rx_buf, 8 + rx_len) == rx_buf[8 + rx_len])
+            physio_cmd_handle(rx_buf[7], rx_buf + 8, rx_len);
+        rx_idx = 0;
+    }
 }
 
 /* Pack signed 24-bit, big-endian */
@@ -204,15 +268,24 @@ void physio_app_poll(void)
 {
     uint32_t now = HAL_GetTick();
 
+    /* ---- Drain UART5 RX: downlink commands from the PC ---- */
+    {
+        uint32_t guard = 0;
+        while (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_RXNE) && guard++ < 128)
+            physio_rx_byte((uint8_t)(huart5.Instance->DR & 0xFF));
+    }
+
     /* ---- Pending frames (filled by ISRs in real mode) ---- */
 #if !PHYSIO_SIM_MODE
     if (ecg_pending_ready) {
         ecg_pending_ready = 0;
-        physio_send(PHY_MSG_ADS129X_DATA, ecg_pending, PHY_LEN_ADS129X_DATA);
+        if (acq_on)
+            physio_send(PHY_MSG_ADS129X_DATA, ecg_pending, PHY_LEN_ADS129X_DATA);
     }
     if (ppg_pending_ready) {
         ppg_pending_ready = 0;
-        physio_send(PHY_MSG_SPO2_PPG, ppg_pending, PHY_LEN_SPO2_PPG);
+        if (acq_on)
+            physio_send(PHY_MSG_SPO2_PPG, ppg_pending, PHY_LEN_SPO2_PPG);
     }
 #endif
 
@@ -220,7 +293,7 @@ void physio_app_poll(void)
     /* ---- Simulated data (hardcoded, for console bring-up) ---- */
     static uint32_t t_ecg, t_ppg, t_slow, t_stat;
 
-    if (now - t_ecg >= 8) {                       /* 500sps / 4 samples = 125fps */
+    if (acq_on && now - t_ecg >= 8) {             /* 500sps / 4 samples = 125fps */
         uint8_t d[PHY_LEN_ADS129X_DATA];
         int s, ch;
         t_ecg = now;
@@ -235,7 +308,7 @@ void physio_app_poll(void)
         physio_send(PHY_MSG_ADS129X_DATA, d, PHY_LEN_ADS129X_DATA);
     }
 
-    if (now - t_ppg >= 40) {                      /* 100sps / 4 samples = 25fps */
+    if (acq_on && now - t_ppg >= 40) {            /* 100sps / 4 samples = 25fps */
         uint8_t d[PHY_LEN_SPO2_PPG];
         int s, ch;
         t_ppg = now;
@@ -248,9 +321,8 @@ void physio_app_poll(void)
         physio_send(PHY_MSG_SPO2_PPG, d, PHY_LEN_SPO2_PPG);
     }
 
-    if (now - t_slow >= 2000) {                   /* temp + SpO2 result @ 0.5Hz */
+    if (now - t_slow >= 2000) {                   /* temp telemetry @ 0.5Hz */
         uint8_t d[PHY_LEN_TEMP_DATA];
-        uint8_t r[PHY_LEN_SPO2_RESULT];
         t_slow = now;
         pack_f32(&d[0],  37.5f);                  /* skin temp */
         pack_f32(&d[4],  38.2f);                  /* rectal temp     */
@@ -258,11 +330,8 @@ void physio_app_poll(void)
         pack_f32(&d[12], 25.0f);                  /* cold junction     */
         d[16] = PHY_TEMP_FLAG_TSKIN_OK | PHY_TEMP_FLAG_TRECT_OK;
         physio_send(PHY_MSG_TEMP_DATA, d, PHY_LEN_TEMP_DATA);
-
-        r[0] = 980 & 0xFF; r[1] = 980 >> 8;    /* SpO2 98.0% (u16, %x10) */
-        r[2] = 450 & 0xFF; r[3] = 450 >> 8;    /* pulse rate 450bpm (u16) */
-        r[4] = 0x01; r[5] = 0; r[6] = 0; r[7] = 0;
-        physio_send(PHY_MSG_SPO2_RESULT, r, PHY_LEN_SPO2_RESULT);
+        /* 0x22 SpO2 result intentionally not sent: raw PPG (0x21) is uploaded,
+         * the SpO2 algorithm runs on the PC console */
     }
 
     if (now - t_stat >= 5000) {                   /* accessory announce 0.2Hz */

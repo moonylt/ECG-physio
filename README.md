@@ -41,6 +41,11 @@ A multi-parameter physiological signal monitoring system designed for rodents (r
    Heater ─────────│  │ PNP Heater  │──────────────────────────────────────────────────────│───► Maintain
    (Temp Maintain) │  │ PCB Heater  │                                                        │    Body Temp
                     │  └─────────────┘                                                        │
+                    │                                                                         │
+   Signal Replay ──│  ┌─────────────┐     ┌─────────────────────────────────────────────┐ │
+   (Research)      │  │ 8Ch DAC Mod │◄────│ DAC-reconstructed ECG/Resp/SpO2/Temp signals │ │───► DAQ
+                    │  └─────────────┘     │ on a common baseline, 8 analog channels     │ │
+                    │                      └─────────────────────────────────────────────┘ │
                     └─────────────────────────────────────────────────────────────────────────┘
                                             │ UART/USB
                                             ▼

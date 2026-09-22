@@ -5,7 +5,7 @@
 """
 
 import numpy as np
-from scipy.signal import butter, filtfilt, iirnotch, lfilter
+from scipy.signal import butter, filtfilt, iirnotch, lfilter, lfilter_zi
 from typing import Optional, Tuple
 
 
@@ -24,6 +24,8 @@ class DigitalFilter:
         """
         self.sampling_rate = sampling_rate
         self._design_filters()
+        # 流式滤波状态（按通道保存 lfilter 的 zi，跨帧连续）
+        self._frame_zi = {}
     
     def _design_filters(self):
         """设计各种滤波器系数"""
@@ -138,6 +140,27 @@ class DigitalFilter:
         except Exception:
             return signal
     
+    def ecg_filter_frame(self, frame: np.ndarray) -> np.ndarray:
+        """
+        流式 ECG 帧滤波：输入 (N, 4) 帧序列（固件每帧 4 样本），
+        用带 zi 状态的 lfilter 逐级级联，滤波跨帧连续。
+        filtfilt 需要的样本数远超 4，逐帧调用会静默失效——所以存在本方法。
+        """
+        out = np.empty_like(frame, dtype=np.float64)
+        for ch in range(frame.shape[1]):
+            x = frame[:, ch].astype(np.float64)
+            zi = self._frame_zi.get(ch)
+            if zi is None:
+                zi = [lfilter_zi(self.b_high, self.a_high),
+                      lfilter_zi(self.b_notch, self.a_notch),
+                      lfilter_zi(self.b_low, self.a_low)]
+            x, zi[0] = lfilter(self.b_high, self.a_high, x, zi=zi[0])
+            x, zi[1] = lfilter(self.b_notch, self.a_notch, x, zi=zi[1])
+            x, zi[2] = lfilter(self.b_low, self.a_low, x, zi=zi[2])
+            self._frame_zi[ch] = zi
+            out[:, ch] = x
+        return out
+
     def ecg_filter(self, signal: np.ndarray, 
                    remove_baseline: bool = True,
                    remove_50hz: bool = True) -> np.ndarray:
@@ -224,6 +247,7 @@ class DigitalFilter:
         """
         self.sampling_rate = sampling_rate
         self._design_filters()
+        self._frame_zi = {}
     
     def get_filter_response(self, filter_type: str = 'ecg', 
                             num_points: int = 1000) -> Tuple[np.ndarray, np.ndarray]:

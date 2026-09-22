@@ -65,7 +65,7 @@ class SerialPanel(QWidget):
         self.baud_combo = QComboBox()
         self.baud_combo.setMinimumWidth(80)
         self.baud_combo.setMaximumWidth(100)
-        baud_rates = ['115200', '9600', '57600', '230400', '460800', '921600']
+        baud_rates = ['819200', '115200', '9600', '57600', '230400', '460800', '921600']
         self.baud_combo.addItems(baud_rates)
         layout.addWidget(self.baud_combo)
 

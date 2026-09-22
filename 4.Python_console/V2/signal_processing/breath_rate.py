@@ -34,28 +34,23 @@ class BreathRateDetector:
         self.current_rpm = 0
         self.envelope = None
         
-        # 滤波器系数
-        self.b_low = None
-        self.a_low = None
-        self.b_high = None
-        self.a_high = None
-    
+
     def _design_filter(self):
         """
         设计滤波器
         
-        呼吸频率范围：0.1-1 Hz (6-60 次/分钟)
-        正常成人静息呼吸：12-20 次/分钟 (0.2-0.33 Hz)
+        呼吸频率范围（啮齿类）：0.3-5 Hz (18-300 次/分钟)
+        小鼠/大鼠典型 60-150 次/分钟 (1-2.5 Hz)
         """
         nyquist = self.sampling_rate / 2
         
-        # 带通滤波 0.1-1 Hz
-        low_cutoff = 0.1 / nyquist
-        high_cutoff = 1.0 / nyquist
+        # 带通滤波 0.3-5 Hz
+        low_cutoff = 0.3 / nyquist
+        high_cutoff = 5.0 / nyquist
         self.b_low, self.a_low = butter(2, [low_cutoff, high_cutoff], btype='band')
         
-        # 低通滤波 0.5 Hz (用于包络平滑)
-        self.b_high, self.a_high = butter(2, 0.5 / nyquist, btype='low')
+        # 低通滤波 1.5 Hz (用于包络平滑)
+        self.b_high, self.a_high = butter(2, 1.5 / nyquist, btype='low')
     
     def extract_breath_wave(self, signal: np.ndarray) -> np.ndarray:
         """
@@ -99,7 +94,7 @@ class BreathRateDetector:
             envelope_smooth = self.envelope
         
         # 检测峰值
-        min_distance = int(self.sampling_rate * 0.8)  # 最小呼吸周期 0.8 秒 (75 RPM)
+        min_distance = int(self.sampling_rate * 0.3)  # 最小呼吸周期 0.3 秒 (200 RPM，啮齿类)
         max_distance = int(self.sampling_rate * 10)    # 最大呼吸周期 10 秒 (6 RPM)
         
         # 动态阈值
@@ -138,8 +133,9 @@ class BreathRateDetector:
         # 计算呼吸间期
         breath_intervals = np.diff(peaks) / self.sampling_rate  # 转换为秒
         
-        # 过滤异常值 (正常呼吸周期 1-10 秒)
-        valid_intervals = breath_intervals[(breath_intervals >= 1.0) & (breath_intervals <= 10.0)]
+        # 过滤异常值：啮齿类呼吸 12-200 RPM → 周期 0.3-5.0 秒
+        # (大鼠典型 60-100 RPM≈0.6-1.0s，原 1.0s 下限会把它们过滤掉)
+        valid_intervals = breath_intervals[(breath_intervals >= 0.3) & (breath_intervals <= 5.0)]
         
         if len(valid_intervals) < 1:
             return 0

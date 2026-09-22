@@ -251,10 +251,12 @@ void TMP_I2C_Write(unsigned char devAddr, unsigned long subReg, unsigned char *w
 //	HAL_I2C_Master_Transmit(&hi2c2,devAddr,&subReg,1,10);
 //	HAL_I2C_Master_Receive (&hi2c2, devAddr, uint8_t *pData, num, 10);
 }
-void TMP_I2C_Read(unsigned char devAddr, unsigned long subReg, unsigned char *readData,  unsigned char num)
+HAL_StatusTypeDef TMP_I2C_Read(unsigned char devAddr, unsigned long subReg, unsigned char *readData,  unsigned char num)
 {
 	uint8_t reg = (uint8_t)subReg;
-	HAL_I2C_Master_Transmit(&hi2c2,devAddr,&reg,1,10);
-	HAL_I2C_Master_Receive (&hi2c2, devAddr, readData, num, 10);
+	HAL_StatusTypeDef s1, s2;
+	s1 = HAL_I2C_Master_Transmit(&hi2c2,devAddr,&reg,1,10);
+	s2 = HAL_I2C_Master_Receive (&hi2c2, devAddr, readData, num, 10);
+	return (s1 == HAL_OK && s2 == HAL_OK) ? HAL_OK : HAL_ERROR;
 }
 /* USER CODE END 1 */

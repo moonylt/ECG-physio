@@ -193,8 +193,15 @@ class MainWindow(QMainWindow):
         if isinstance(frame, ECGFrame):
             self._process_ecg_frame(frame)
         elif isinstance(frame, TempFrame):
-            self.status_bar.set_temperatures(frame.t_skin, frame.t_rect, frame.t_heater)
-            self.temp_widget.add_temp(frame.t_heater, frame.t_rect, frame.t_skin)
+            # 探头故障时不显示误导性的 0 度：肛温开路→None，加热失联→告警后缀
+            from comms.protocol_parser import TEMP_FLAG_TC_OPEN, TEMP_FLAG_HEATER_OT
+            t_rect = None if (frame.flags & TEMP_FLAG_TC_OPEN) else frame.t_rect
+            self.status_bar.set_temperatures(
+                frame.t_skin, t_rect, frame.t_heater,
+                fault=('TC OPEN' if frame.flags & TEMP_FLAG_TC_OPEN else '') +
+                      (' | ' if (frame.flags & TEMP_FLAG_TC_OPEN and frame.flags & TEMP_FLAG_HEATER_OT) else '') +
+                      ('HEATER FAULT' if frame.flags & TEMP_FLAG_HEATER_OT else ''))
+            self.temp_widget.add_temp(frame.t_heater, t_rect, frame.t_skin)
         elif isinstance(frame, SpO2ResultFrame):
             self.status_bar.set_spo2(frame.spo2, frame.pulse_rate)
         elif isinstance(frame, DeviceStatusFrame):
@@ -214,10 +221,9 @@ class MainWindow(QMainWindow):
         # 获取样本数据
         samples = frame.samples.copy().astype(np.float32)  # shape: (4, 4)
         
-        # 应用数字滤波
+        # 应用数字滤波（流式：带 zi 状态跨帧连续，逐帧 filtfilt 会静默失效）
         if self.is_filter_enabled:
-            for ch in range(4):
-                samples[:, ch] = self.digital_filter.ecg_filter(samples[:, ch])
+            samples = self.digital_filter.ecg_filter_frame(samples).astype(np.float32)
         
         # 添加到缓冲区
         self.ecg_buffer.add_data(samples)
@@ -330,7 +336,7 @@ class MainWindow(QMainWindow):
             try:
                 filepath = self.data_saver.save_to_csv(
                     data,
-                    filename=os.path.basename(filename),
+                    filename=filename,
                     sampling_rate=self.waveform_widget.sampling_rate,
                     metadata={
                         'Device': 'ADS1298R',
@@ -369,7 +375,7 @@ class MainWindow(QMainWindow):
                 }
                 filepath = self.data_saver.save_to_edf(
                     data,
-                    filename=os.path.basename(filename),
+                    filename=filename,
                     sampling_rate=self.waveform_widget.sampling_rate,
                     patient_info=patient_info
                 )
@@ -400,7 +406,7 @@ class MainWindow(QMainWindow):
             try:
                 filepath = self.data_saver.save_to_mat(
                     data,
-                    filename=os.path.basename(filename),
+                    filename=filename,
                     sampling_rate=self.waveform_widget.sampling_rate,
                     metadata={
                         'Device': 'ADS1298R',
@@ -445,7 +451,7 @@ class MainWindow(QMainWindow):
                     data,
                     heart_rate=heart_rate,
                     breath_rate=breath_rate,
-                    filename=os.path.basename(filename)
+                    filename=filename
                 )
                 QMessageBox.information(
                     self,

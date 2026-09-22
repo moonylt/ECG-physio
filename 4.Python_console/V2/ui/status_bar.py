@@ -190,8 +190,9 @@ class StatusBar(QWidget):
             self.spo2_label.setText("SpO2: --")
             self.spo2_label.setStyleSheet("color: #80deea; font-weight: bold; font-size: 13px;")
 
-    def set_temperatures(self, t_skin: float = None, t_rect: float = None, t_heater: float = None):
-        """Set temperatures (MSGID 0x25)."""
+    def set_temperatures(self, t_skin: float = None, t_rect: float = None, t_heater: float = None,
+                         fault: str = ''):
+        """Set temperatures (MSGID 0x25). fault: 非空时以告警色追加（如 'TC OPEN'）."""
         parts = []
         if t_skin is not None:
             parts.append(f"sk {t_skin:.1f}")
@@ -199,10 +200,12 @@ class StatusBar(QWidget):
             parts.append(f"rc {t_rect:.1f}")
         if t_heater is not None:
             parts.append(f"ht {t_heater:.1f}")
-        if parts:
-            self.temp_label.setText("T: " + "/".join(parts) + " C")
-        else:
-            self.temp_label.setText("T: --")
+        text = ("T: " + "/".join(parts) + " C") if parts else "T: --"
+        if fault:
+            text += f"  ⚠{fault}"
+        self.temp_label.setText(text)
+        self.temp_label.setStyleSheet(
+            f"color: {'#ff8a65' if fault else '#80deea'}; font-weight: bold; font-size: 13px;")
 
     def set_connected(self, connected: bool):
         """Set connection status."""

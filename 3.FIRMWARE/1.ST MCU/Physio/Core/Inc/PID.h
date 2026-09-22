@@ -14,6 +14,7 @@ rebuilding. Structure: feedforward (FF) + PI + derivative-on-measurement (D)
 extern float temp_setvalue0;
 
 void pid_temp_process(float temp_value);
+void pid_force_off(void);   /* safety: heater output to zero */
 
 /* Runtime-writable tuning parameters (see PID.c for meanings) */
 extern volatile float   g_ff;

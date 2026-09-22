@@ -47,7 +47,7 @@ void MX_I2C2_Init(void);
 /* USER CODE BEGIN Prototypes */
 void TMP_I2C_Init(void);
 void TMP_I2C_Write(unsigned char devAddr, unsigned long subReg, unsigned char *writeData,  unsigned char num);
-void TMP_I2C_Read(unsigned char devAddr, unsigned long subReg, unsigned char *readData,  unsigned char num);
+HAL_StatusTypeDef TMP_I2C_Read(unsigned char devAddr, unsigned long subReg, unsigned char *readData,  unsigned char num);
 float TMP_data_process(unsigned char *Data);
 /* USER CODE END Prototypes */
 

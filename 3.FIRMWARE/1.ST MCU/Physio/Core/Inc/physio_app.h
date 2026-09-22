@@ -23,6 +23,7 @@
 
 void physio_app_init(void);
 void physio_app_poll(void);
+void physio_app_rx_isr(uint8_t b);   /* call from UART5 IRQ handler */
 
 /* Real-mode ISR entry points (no-ops in simulation mode) */
 void physio_app_ecg_from_isr(const uint8_t ads_raw[27]);

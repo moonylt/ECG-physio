@@ -34,10 +34,7 @@ class HeartRateDetector:
         self.current_bpm = 0
         self.last_peaks = []
         
-        # 滤波器系数
-        self.b = None
-        self.a = None
-    
+
     def _design_filter(self):
         """设计带通滤波器 (0.5-40Hz ECG 频段)"""
         nyquist = self.sampling_rate / 2
@@ -65,8 +62,8 @@ class HeartRateDetector:
         signal_std = np.std(filtered)
         signal_mean = np.mean(filtered)
         
-        # R 波检测参数
-        min_distance = int(self.sampling_rate * 0.25)  # 最小 RR 间期 250ms (对应 240 BPM)
+        # R 波检测参数（啮齿类：心率可达 750 BPM，RR 间期最短约 80ms）
+        min_distance = int(self.sampling_rate * 0.07)  # 最小 RR 间期 70ms (对应 ~857 BPM)
         max_distance = int(self.sampling_rate * 2.5)   # 最大 RR 间期 2.5s (对应 24 BPM)
         height_threshold = signal_mean + 1.5 * signal_std
         prominence_threshold = 0.3 * signal_std
@@ -77,7 +74,7 @@ class HeartRateDetector:
             height=height_threshold,
             prominence=prominence_threshold,
             distance=min_distance,
-            width=int(self.sampling_rate * 0.04)  # 最小宽度 40ms
+            width=2                                 # 最小宽度 2 样本（鼠 QRS 很窄）
         )
         
         # 保存峰值历史
@@ -104,8 +101,9 @@ class HeartRateDetector:
         # 计算 RR 间期
         rr_intervals = np.diff(peaks) / self.sampling_rate  # 转换为秒
         
-        # 过滤异常值 (正常 RR 间期 0.3-2.0 秒)
-        valid_rr = rr_intervals[(rr_intervals >= 0.3) & (rr_intervals <= 2.0)]
+        # 过滤异常值：啮齿类心率 120-750 BPM → RR 间期 0.08-0.5 秒
+        # (小鼠/大鼠典型 300-600 BPM，原人体阈值 0.3s 会把它们全部过滤掉)
+        valid_rr = rr_intervals[(rr_intervals >= 0.08) & (rr_intervals <= 0.5)]
         
         if len(valid_rr) < 1:
             return 0

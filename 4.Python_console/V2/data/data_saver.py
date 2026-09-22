@@ -110,12 +110,10 @@ class DataSaver:
                     f.writePhysicalSamples(data[:, ch])
 
         except ImportError:
-            # 如果没有 pyedflib，保存为简单文本格式
-            with open(filepath, 'w') as f:
-                f.write(f"# ECG Data (EDF-like format)\n")
-                f.write(f"# Sampling Rate: {sampling_rate} Hz\n")
-                for row in data:
-                    f.write(' '.join(f"{v:.2f}" for v in row) + '\n')
+            # 不能伪装 EDF：缺依赖时明确失败，避免生成 EDF 阅读器打不开的文本文件
+            raise RuntimeError(
+                "pyedflib is not installed - real EDF export requires it "
+                "(pip install pyedflib); use CSV export instead")
 
         return filepath
 

@@ -41,6 +41,20 @@ static uint8_t  rx_buf[RX_CAP];
 static uint16_t rx_idx = 0;
 static uint16_t rx_len = 0;
 
+/* Lock-free RX ring: single producer (UART5 ISR), single consumer (poll). */
+#define RX_RING_SZ 128   /* power of two */
+static volatile uint8_t rx_ring[RX_RING_SZ];
+static volatile uint8_t rx_head = 0, rx_tail = 0;
+
+void physio_app_rx_isr(uint8_t b)
+{
+    uint8_t nxt = (uint8_t)((rx_head + 1) & (RX_RING_SZ - 1));
+    if (nxt != rx_tail) {          /* full: drop (the frame CRC will fail anyway) */
+        rx_ring[rx_head] = b;
+        rx_head = nxt;
+    }
+}
+
 static void physio_cmd_handle(uint8_t msgid, const uint8_t *d, uint16_t len)
 {
     switch (msgid) {
@@ -190,12 +204,17 @@ static int32_t sim_ppg_ch(int ch)               /* CH0=IR, CH1=RED */
 #define SPO2_DECIM  10          /* AFE4490 PRF ~1kHz -> 100sps output */
 
 #if !PHYSIO_SIM_MODE
-static uint8_t  ecg_pending[PHY_LEN_ADS129X_DATA];
-static volatile uint8_t ecg_pending_ready = 0;
+/* Ping-pong buffers: the ISR fills buf[wr], the main loop sends buf[done].
+ * The ISR never writes a buffer the main loop is transmitting, so a frame
+ * can not be torn even when the UART TX blocks the poll loop. */
+static uint8_t  ecg_pending[2][PHY_LEN_ADS129X_DATA];
+static volatile uint8_t ecg_wr = 0;       /* ISR: buffer being filled */
+static volatile uint8_t ecg_done = 0xFF;  /* main: completed buffer, 0xFF = none */
 static uint8_t  ecg_sample_cnt = 0;
 
-static uint8_t  ppg_pending[PHY_LEN_SPO2_PPG];
-static volatile uint8_t ppg_pending_ready = 0;
+static uint8_t  ppg_pending[2][PHY_LEN_SPO2_PPG];
+static volatile uint8_t ppg_wr = 0;
+static volatile uint8_t ppg_done = 0xFF;
 static uint8_t  ppg_sample_cnt = 0;
 static uint16_t ppg_decim_cnt = 0;
 #endif
@@ -205,7 +224,7 @@ void physio_app_ecg_from_isr(const uint8_t ads_raw[27])
 #if !PHYSIO_SIM_MODE
     /* ADS1298R 27-byte frame: [0..2]status [3..5]CH1 resp [6..8]CH2 lead-I
      * [9..11]CH3 lead-II [12..14]CH4 lead-III */
-    uint8_t *p = &ecg_pending[ecg_sample_cnt * 12];
+    uint8_t *p = &ecg_pending[ecg_wr][ecg_sample_cnt * 12];
     pack_s24(p + 0,  phy_s24_to_i32(&ads_raw[3]));    /* CH0 respiration     */
     pack_s24(p + 3,  phy_s24_to_i32(&ads_raw[6]));    /* CH1 lead I   */
     pack_s24(p + 6,  phy_s24_to_i32(&ads_raw[9]));    /* CH2 lead II  */
@@ -213,7 +232,8 @@ void physio_app_ecg_from_isr(const uint8_t ads_raw[27])
 
     if (++ecg_sample_cnt >= PHY_SAMPLES_PER_FRAME) {
         ecg_sample_cnt = 0;
-        ecg_pending_ready = 1;
+        ecg_done = ecg_wr;          /* publish, then switch buffers */
+        ecg_wr ^= 1;
     }
 #else
     (void)ads_raw;
@@ -229,12 +249,13 @@ void physio_app_spo2_from_isr(void)
     ppg_decim_cnt = 0;
 
     AFE4490_ReadSample(&ir, &red);
-    pack_s24(&ppg_pending[ppg_sample_cnt * 6],     ir);
-    pack_s24(&ppg_pending[ppg_sample_cnt * 6 + 3], red);
+    pack_s24(&ppg_pending[ppg_wr][ppg_sample_cnt * 6],     ir);
+    pack_s24(&ppg_pending[ppg_wr][ppg_sample_cnt * 6 + 3], red);
 
     if (++ppg_sample_cnt >= PHY_SAMPLES_PER_FRAME) {
         ppg_sample_cnt = 0;
-        ppg_pending_ready = 1;
+        ppg_done = ppg_wr;
+        ppg_wr ^= 1;
     }
 #endif
 }
@@ -249,6 +270,13 @@ void physio_app_init(void)
     HAL_UART_DeInit(&huart5);
     huart5.Init.BaudRate = PHY_UART_BAUD;
     HAL_UART_Init(&huart5);
+
+    /* Downlink RX runs on interrupt: the polled loop has blocking windows
+     * (UART TX, I2C/SPI) that would otherwise overrun at 819200 baud. */
+    __HAL_UART_CLEAR_OREFLAG(&huart5);
+    __HAL_UART_ENABLE_IT(&huart5, UART_IT_RXNE);
+    HAL_NVIC_SetPriority(UART5_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(UART5_IRQn);
 
 #if !PHYSIO_SIM_MODE
     uint8_t d[PHY_LEN_DEVICE_STATUS];
@@ -268,24 +296,26 @@ void physio_app_poll(void)
 {
     uint32_t now = HAL_GetTick();
 
-    /* ---- Drain UART5 RX: downlink commands from the PC ---- */
-    {
-        uint32_t guard = 0;
-        while (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_RXNE) && guard++ < 128)
-            physio_rx_byte((uint8_t)(huart5.Instance->DR & 0xFF));
+    /* ---- Drain RX ring (filled by the UART5 interrupt) ---- */
+    while (rx_tail != rx_head) {
+        uint8_t b = rx_ring[rx_tail];
+        rx_tail = (uint8_t)((rx_tail + 1) & (RX_RING_SZ - 1));
+        physio_rx_byte(b);
     }
 
     /* ---- Pending frames (filled by ISRs in real mode) ---- */
 #if !PHYSIO_SIM_MODE
-    if (ecg_pending_ready) {
-        ecg_pending_ready = 0;
+    if (ecg_done != 0xFF) {
+        uint8_t idx = ecg_done;
+        ecg_done = 0xFF;
         if (acq_on)
-            physio_send(PHY_MSG_ADS129X_DATA, ecg_pending, PHY_LEN_ADS129X_DATA);
+            physio_send(PHY_MSG_ADS129X_DATA, ecg_pending[idx], PHY_LEN_ADS129X_DATA);
     }
-    if (ppg_pending_ready) {
-        ppg_pending_ready = 0;
+    if (ppg_done != 0xFF) {
+        uint8_t idx = ppg_done;
+        ppg_done = 0xFF;
         if (acq_on)
-            physio_send(PHY_MSG_SPO2_PPG, ppg_pending, PHY_LEN_SPO2_PPG);
+            physio_send(PHY_MSG_SPO2_PPG, ppg_pending[idx], PHY_LEN_SPO2_PPG);
     }
 #endif
 
@@ -350,13 +380,24 @@ void physio_app_poll(void)
     static uint32_t t_temp;
     static uint8_t  tmp_raw[2];
     static uint8_t  tmp_cold[2];
+    static uint8_t  heater_fail_cnt = 0;
 
     if (now - t_temp >= 2000) {
         uint8_t d[PHY_LEN_TEMP_DATA];
         float t_rect;
         t_temp = now;
-        TMP_I2C_Read(TMP117_2, 0x00, tmp_raw, 2);              /* heater plate temp */
-        pid_temp_process(TMP_data_process(tmp_raw));
+
+        /* Heater plate temp drives the PID. If the sensor stops responding
+         * (I2C error), keep the last bytes for telemetry but NEVER keep
+         * heating on a stale value: 2 consecutive failures latch the
+         * heater off and raise the fault flag. */
+        if (TMP_I2C_Read(TMP117_2, 0x00, tmp_raw, 2) == HAL_OK) {
+            heater_fail_cnt = 0;
+            pid_temp_process(TMP_data_process(tmp_raw));
+        } else if (++heater_fail_cnt >= 2) {
+            pid_force_off();
+        }
+
         maxim_31856_conversion_result_process();               /* rectal (thermocouple) */
         TMP_I2C_Read(TMP117_1, 0x00, tmp_cold, 2);             /* thermocouple cold junction */
 
@@ -368,6 +409,8 @@ void physio_app_poll(void)
         pack_f32(&d[8],  TMP_data_process(tmp_raw));
         pack_f32(&d[12], TMP_data_process(tmp_cold));
         d[16] = 0;
+        if (heater_fail_cnt >= 2)
+            d[16] |= PHY_TEMP_FLAG_HEATER_OT;                  /* heater control fault */
         if (t_rect > -20.0f && t_rect < 200.0f)
             d[16] |= PHY_TEMP_FLAG_TRECT_OK;
         else {

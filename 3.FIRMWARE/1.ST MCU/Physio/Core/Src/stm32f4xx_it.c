@@ -318,6 +318,17 @@ void DMA2_Stream6_IRQHandler(void)
   /* USER CODE END DMA2_Stream6_IRQn 1 */
 }
 
+/** @brief UART5 RX interrupt: downlink bytes from the PC (via ESP32 bridge) */
+void UART5_IRQHandler(void)
+{
+  if (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_ORE)) {
+      __HAL_UART_CLEAR_OREFLAG(&huart5);   /* dropped bytes fail CRC upstream */
+  }
+  if (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_RXNE)) {
+      physio_app_rx_isr((uint8_t)(huart5.Instance->DR & 0xFF));
+  }
+}
+
 /* USER CODE BEGIN 1 */
 void HAL_SPI_TxRxCpltCallback( SPI_HandleTypeDef * hspi)
 {

@@ -33,6 +33,17 @@ static float clampf(float v, float lo, float hi)
 	return (v < lo) ? lo : (v > hi) ? hi : v;
 }
 
+void pid_force_off(void)
+{
+	/* Safety shutdown: heater output to zero and hold internal state reset.
+	 * Used when the heater sensor is lost (I2C failure) so the loop can not
+	 * run open-loop on a stale temperature. */
+	pid_integ = 0.0f;
+	pid_dac_f = 0.0f;
+	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, 0);
+	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+}
+
 void pid_temp_process(float temp_value)
 {
 	float err, u, d_t, ff;
